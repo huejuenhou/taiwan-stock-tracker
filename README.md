@@ -2,8 +2,8 @@
 
 # Taiwan Stock Tracker
 
-A small Mac app for tracking Taiwan stocks and ETFs that two people trade,
-together and separately. Everything stays on your Mac: your trades are saved
+A small Mac app for tracking the Taiwan stocks and ETFs you trade, on your
+own or with a partner. Everything stays on your Mac: your trades are saved
 in a file next to the app, and prices come from the Taiwan Stock Exchange.
 
 ## Install
@@ -80,8 +80,13 @@ replaces its own files, restarts and reloads the page by itself.
   you correct once the real amount arrives. Dividends are kept on this page
   only and are not part of the profit numbers on the other pages.
 
-The Combined and per-person tabs apply to every page. Set the two names in
-**Settings**. Red is a gain and green is a loss, the Taiwan convention.
+**One person or two.** The app starts for one person. To track two people,
+separately and together, type a second name in **Settings**: tabs for
+Combined and each person appear on every page, and each trade gets an
+owner. Empty the second name to go back to one person (this only works
+once the second person has no trades left).
+
+Red is a gain and green is a loss, the Taiwan convention.
 
 ## Prices
 

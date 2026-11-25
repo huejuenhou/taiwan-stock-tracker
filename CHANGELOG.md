@@ -6,6 +6,11 @@ Every issue we find and how it was fixed, newest first. Changes wait under
 ## Unreleased
 
 ### Added
+- **One-person mode.** Leave the second name empty in Settings and the app
+  is for one person: no Combined or per-person tabs, no owner column, and
+  the trade form no longer asks whose trade it is. Type a second name to
+  switch back. New installs start as one person, named "Me". If the second
+  person still has trades, the two-person view stays so nothing is hidden.
 - **A real Mac app.** **Taiwan Stock Tracker** now opens in its own window,
   with the red seal in the Dock and no browser tabs or Terminal window.
   Quitting the app (⌘Q) stops the tracker too. Start Tracker still works

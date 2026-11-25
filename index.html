@@ -213,7 +213,8 @@
   }
   .demo-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45;
     background: color-mix(in srgb, var(--joint) 14%, transparent); border: 1px solid color-mix(in srgb, var(--joint) 40%, transparent); }
-  .demo-banner[hidden], .update-banner[hidden] { display: none; }
+  .demo-banner[hidden], .update-banner[hidden], .tabs[hidden] { display: none; }
+  body.solo .col-owner, .field[hidden] { display: none; }
   .update-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45;
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px;
     background: color-mix(in srgb, var(--p1) 12%, transparent); border: 1px solid color-mix(in srgb, var(--p1) 40%, transparent); }
@@ -350,7 +351,7 @@
     dividends: [],      // {id, symbol, date, amount, person}
     expected: [],       // {id, symbol, person, exDate, payDate, perUnit, status:'estimate'|'announced', actual}
     prices: {},         // symbol -> current price
-    settings: { p1: "Person 1", p2: "Person 2", joint: "Joint" },
+    settings: { p1: "Me", p2: "", joint: "Joint" },
     filter: "all",      // all | p1 | p2 | joint
     rev: 0,             // version of the saved file this tab last saw
     manual: {},         // symbol -> 1 when its price was typed by hand
@@ -375,9 +376,16 @@
   function signed(n, dp) { return (n > 0 ? "+" : n < 0 ? "−" : "") + "NT$" + fmt(Math.abs(n), dp == null ? 0 : dp); }
   function pctStr(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n), 2) + "%"; }
   function cls(n) { return n > 0 ? "up" : n < 0 ? "down" : "flat"; }
-  function pname(k) { return state.settings[k] || ({ p1: "Person 1", p2: "Person 2", joint: "Joint" })[k] || k; }
+  function pname(k) { return state.settings[k] || ({ p1: "Me", p2: "Person 2", joint: "Joint" })[k] || k; }
   function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   function num(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; }
+  // One person: the second name is left empty in Settings and nobody else has
+  // trades or payments. Then tabs, owner labels and the owner picker go away.
+  function hasOthers() {
+    function other(x) { return x.person === "p2" || x.person === "joint"; }
+    return state.transactions.some(other) || state.expected.some(other);
+  }
+  function isSolo() { return !String(state.settings.p2 || "").trim() && !hasOthers(); }
   function matchFilter(person) { return state.filter === "all" || person === state.filter; }
   function curPrice(sym) { return num(state.prices[sym]); }
   // Costs of a trade: broker commission both ways, plus tax when selling.
@@ -454,6 +462,8 @@
   var C = null, DAYS = null;   // DAYS: date -> that day's result, once price history is loaded
   function latestDay() { return DAYS && state.asof ? DAYS[state.asof] : null; }
   function render() {
+    document.body.classList.toggle("solo", isSolo());
+    if (isSolo()) state.filter = "all";
     C = compute();
     DAYS = state.ready && hist && hist.missing === 0 ? dailyResults() : null;
     renderSubtitle();
@@ -470,7 +480,7 @@
     var sub = document.getElementById("subtitle");
     if (!state.ready) { sub.textContent = "Loading…"; return; }
     var nt_ = state.transactions.length;
-    sub.textContent = pname("p1") + " + " + pname("p2") + " · " + C.positions.length + " open positions · " + nt_ + (nt_ === 1 ? " trade" : " trades");
+    sub.textContent = (isSolo() ? pname("p1") : pname("p1") + " + " + pname("p2")) + " · " + C.positions.length + " open positions · " + nt_ + (nt_ === 1 ? " trade" : " trades");
   }
 
   function renderTiles() {
@@ -490,6 +500,8 @@
 
   function renderTabs() {
     var tabs = document.getElementById("tabs"); tabs.innerHTML = "";
+    tabs.hidden = isSolo();
+    if (tabs.hidden) return;
     var defs = [{ k: "all", label: "Combined" }, { k: "p1", label: pname("p1") }, { k: "p2", label: pname("p2") }, { k: "joint", label: pname("joint") }];
     defs.forEach(function (d) {
       var t = totals(C, function (p) { return d.k === "all" || p === d.k; });
@@ -522,7 +534,7 @@
       ]));
       return;
     }
-    var head = el("tr", {}, [["ETF", 1], ["Owner", 1], ["Shares", 1], ["Avg cost", 1], ["Price", 1], ["Day", 1], ["Mkt value", 1], ["Unrealized P/L", 1]].map(function (h) { return el("th", { text: h[0] }); }));
+    var head = el("tr", {}, [["ETF", 1], ["Owner", 1], ["Shares", 1], ["Avg cost", 1], ["Price", 1], ["Day", 1], ["Mkt value", 1], ["Unrealized P/L", 1]].map(function (h) { return el("th", { text: h[0], class: h[0] === "Owner" ? "col-owner" : null }); }));
     var tb = el("tbody");
     var day = latestDay();
     rows.forEach(function (p) {
@@ -531,7 +543,7 @@
       var dayPl = dr ? roundPl(dr.pl) : 0;
       tb.appendChild(el("tr", {}, [
         el("td", {}, symCell(p.symbol)),
-        el("td", { style: "text-align:left" }, [personPill(p.person)]),
+        el("td", { class: "col-owner", style: "text-align:left" }, [personPill(p.person)]),
         el("td", { class: "mono", text: fmt(p.shares) }),
         el("td", { class: "mono", text: fmt(p.avgCost, 2) }),
         el("td", { class: "mono" }, [document.createTextNode(p.price ? fmt(p.price, 2) : "—"), state.manual[p.symbol] ? el("div", { class: "sub flat", style: "font-size:.74rem", text: "manual" }) : null]),
@@ -564,7 +576,7 @@
       var frac = p.mkt / total;
       legend.appendChild(el("div", { class: "al-row" }, [
         el("span", { class: "dot", style: "background:" + DONUT[i % DONUT.length] }),
-        el("span", { class: "nm2", html: "<b class='sym'>" + escapeHtml(p.symbol) + "</b> · " + escapeHtml(pname(p.person)) }),
+        el("span", { class: "nm2", html: "<b class='sym'>" + escapeHtml(p.symbol) + "</b>" + (isSolo() ? "" : " · " + escapeHtml(pname(p.person))) }),
         el("span", { class: "pct", text: fmt(frac * 100, 1) + "%" })
       ]));
     });
@@ -588,7 +600,7 @@
       ]));
       return;
     }
-    var head = el("tr", {}, ["Type", "Date", "ETF", "Owner", "Shares", "Price", "Amount", "Fees & tax", "Realized P/L", ""].map(function (h) { return el("th", { text: h }); }));
+    var head = el("tr", {}, ["Type", "Date", "ETF", "Owner", "Shares", "Price", "Amount", "Fees & tax", "Realized P/L", ""].map(function (h) { return el("th", { text: h, class: h === "Owner" ? "col-owner" : null }); }));
     var tb = el("tbody");
     rows.forEach(function (t) {
       var amt = num(t.shares) * num(t.price);
@@ -600,7 +612,7 @@
         el("td", { style: "text-align:left" }, [el("span", { class: "tag " + (t.type === "sell" ? "sell" : "buy"), text: t.type === "sell" ? "Sell" : "Buy" })]),
         el("td", { class: "mono", style: "text-align:left", text: (t.date || "").replace(/-/g, "/") }),
         el("td", { style: "text-align:left" }, [el("span", { class: "sym", text: t.symbol })]),
-        el("td", { style: "text-align:left" }, [personPill(t.person)]),
+        el("td", { class: "col-owner", style: "text-align:left" }, [personPill(t.person)]),
         el("td", { class: "mono", text: fmt(num(t.shares)) }),
         el("td", { class: "mono", text: fmt(num(t.price), 2) }),
         el("td", { class: "mono", text: nt(amt, amt % 1 ? 2 : 0) }),
@@ -824,7 +836,7 @@
       tb.appendChild(el("tr", {}, [
         el("td", {}, [
           el("span", { class: "sym", text: r.symbol }),
-          state.filter === "all" ? personPill(r.person) : null,
+          state.filter === "all" && !isSolo() ? personPill(r.person) : null,
           names[r.symbol] ? el("div", { class: "etf-name", text: names[r.symbol] }) : null,
           notes.length ? el("div", { class: "trade", text: notes.join(" · ") }) : null
         ]),
@@ -982,14 +994,14 @@
     else paidBody.appendChild(el("div", { class: "empty" }, [el("p", { text: "Payments move here once their date has passed or you enter the actual amount." })]));
   }
   function calTable(rows, today) {
-    var head = el("tr", {}, ["Pay date", "ETF", "Owner", "Approx.", "Actual", "Status", ""].map(function (h, i) { return el("th", { text: h, style: i < 3 ? "text-align:left" : null }); }));
+    var head = el("tr", {}, ["Pay date", "ETF", "Owner", "Approx.", "Actual", "Status", ""].map(function (h, i) { return el("th", { text: h, style: i < 3 ? "text-align:left" : null, class: h === "Owner" ? "col-owner" : null }); }));
     var tb = el("tbody");
     rows.forEach(function (r) {
       var d = expDetail(r), tag = expTag(r, d, today);
       tb.appendChild(el("tr", {}, [
         el("td", { class: "mono", style: "text-align:left" }, [document.createTextNode(normDate(r.payDate).replace(/-/g, "/")), el("div", { class: "sub", style: "font-size:.74rem", text: "ex " + normDate(r.exDate).replace(/-/g, "/") })]),
         el("td", { style: "text-align:left" }, [el("span", { class: "sym", text: r.symbol })]),
-        el("td", { style: "text-align:left" }, [personPill(r.person)]),
+        el("td", { class: "col-owner", style: "text-align:left" }, [personPill(r.person)]),
         el("td", { class: "mono" }, [document.createTextNode((r.status === "announced" ? "" : "≈") + nt(d.amount)), el("div", { class: "sub", style: "font-size:.74rem", text: fmt(d.shares) + " × " + fmt(num(r.perUnit), 2) })]),
         d.received ? el("td", { class: "mono up", text: (r.status === "estimate" ? "≈" : "+") + nt(num(r.actual)) }) : el("td", { class: "mono flat", text: "—" }),
         el("td", {}, [el("span", { class: "tag " + tag[0], text: tag[1] })]),
@@ -1032,7 +1044,7 @@
       closeModal();
     }}, [
       field("ETF", symIn),
-      el("div", { class: "field" }, [el("label", { text: "Owner" }), seg]),
+      isSolo() ? null : el("div", { class: "field" }, [el("label", { text: "Owner" }), seg]),
       el("div", { class: "frow" }, [field("Ex-dividend date", exIn), field("Payment date", payIn)]),
       el("div", { class: "frow" }, [field("Per share", perIn, "NT$ expected"), field("Actual received", actIn, "NT$ total, after fees")]),
       el("div", { class: "field" }, [el("label", { text: "Status" }), statusSeg]),
@@ -1138,7 +1150,7 @@
     }}, [
       el("div", { class: "field" }, [el("label", { text: "Type" }), typeSeg]),
       el("div", { class: "frow" }, [field("Date", dateIn), field("Code", symIn, "ETF or stock, e.g. 00990A or 2330")]),
-      el("div", { class: "field" }, [el("label", { text: "Owner" }), seg]),
+      isSolo() ? null : el("div", { class: "field" }, [el("label", { text: "Owner" }), seg]),
       el("div", { class: "frow" }, [field("Shares", sharesIn), field("Price", priceIn, "NT$ / share")]),
       field("Fees & tax", costsIn, "NT$ total, as shown in the Fubon app. Leave empty to use the estimate."),
       amtNote, warnNote,
@@ -1182,15 +1194,20 @@
   // ---- settings ----------------------------------------------------------
   function openSettings() {
     var p1In = el("input", { type: "text", value: pname("p1"), maxlength: "20" });
-    var p2In = el("input", { type: "text", value: pname("p2"), maxlength: "20" });
+    var p2In = el("input", { type: "text", value: state.settings.p2 || "", maxlength: "20", placeholder: "Leave empty if it's just you" });
     var jIn = el("input", { type: "text", value: pname("joint"), maxlength: "20" });
+    var jField = field("Shared label", jIn, "for holdings you both own together");
+    function showJoint() { jField.hidden = !p2In.value.trim() && !hasOthers(); }
+    p2In.addEventListener("input", showJoint); showJoint();
     var feeIn = el("input", { type: "number", step: "any", min: "1", max: "100", value: num(state.settings.feeDiscount) || 100, inputmode: "decimal" });
     var form = el("form", { class: "mform", onsubmit: function (e) {
       e.preventDefault();
-      state.settings = { p1: p1In.value.trim() || "Person 1", p2: p2In.value.trim() || "Person 2", joint: jIn.value.trim() || "Joint", feeDiscount: Math.min(100, Math.max(1, num(feeIn.value) || 100)) };
+      state.settings = { p1: p1In.value.trim() || "Me", p2: p2In.value.trim(), joint: jIn.value.trim() || "Joint", feeDiscount: Math.min(100, Math.max(1, num(feeIn.value) || 100)) };
       render(); persist(); closeModal();
     }}, [
-      field("Person 1", p1In), field("Person 2", p2In), field("Shared label", jIn, "for holdings you both own together"),
+      field("Your name", p1In),
+      field("Second person", p2In, hasOthers() ? "Keep a name here: the second person or the shared label still has trades." : "Add a name to track two people, separately and together."),
+      jField,
       field("Commission you pay, % of the standard rate", feeIn, "Standard is 0.1425% per trade. Type 100 for no discount, 60 for 6折, 28 for 2.8折. Sell tax is added automatically: 0.1% for ETFs, 0.3% for stocks."),
       el("div", { class: "mactions" }, [
         el("button", { type: "button", class: "btn", text: "Cancel", onclick: closeModal }),
@@ -1240,7 +1257,7 @@
     state.prices = data.prices || {};
     state.manual = {};
     (data.manual || []).forEach(function (s) { state.manual[s] = 1; });
-    if (data.settings) state.settings = { p1: data.settings.p1 || "Person 1", p2: data.settings.p2 || "Person 2", joint: data.settings.joint || "Joint", feeDiscount: num(data.settings.feeDiscount) || 100 };
+    if (data.settings) state.settings = { p1: data.settings.p1 || "Me", p2: data.settings.p2 == null ? "Person 2" : data.settings.p2, joint: data.settings.joint || "Joint", feeDiscount: num(data.settings.feeDiscount) || 100 };
   }
   function doSave() {
     if (saving) { pendingSave = true; return; }

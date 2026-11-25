@@ -48,7 +48,7 @@ data_lock = threading.RLock()
 def _seed():
     return {
         "rev": 0,   # goes up by one on every save; a tab must send the latest to save
-        "settings": {"p1": "Person 1", "p2": "Person 2", "joint": "Joint"},
+        "settings": {"p1": "Me", "p2": "", "joint": "Joint"},   # one person until a second name is added
         "transactions": [],
         "dividends": [],
         "expected": [],
