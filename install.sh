@@ -5,7 +5,7 @@ set -euo pipefail
 URL="https://github.com/huejuenhou/taiwan-stock-tracker/releases/latest/download/taiwan-stock-tracker.zip"
 DEST="$HOME/Applications/Taiwan Stock Tracker"
 FILES=(taiwan_etf_tracker.py index.html demo-data.json README.md CHANGELOG.md AppIcon.icns
-       "Start Tracker.command" "Try Demo.command")
+       "Start Tracker.command" "Try Demo.command" "Install App.command" mac-app/TrackerApp)
 
 echo ""
 echo "  Installing Taiwan Stock Tracker…"
@@ -36,53 +36,28 @@ fi
 # Copy only the app's own files, so an existing install keeps its data.
 mkdir -p "$DEST"
 for f in "${FILES[@]}"; do
-  if [ -f "$SRC/$f" ]; then cp "$SRC/$f" "$DEST/$f"; fi
+  if [ -f "$SRC/$f" ]; then
+    mkdir -p "$(dirname "$DEST/$f")"
+    cp "$SRC/$f" "$DEST/$f"
+  fi
 done
-if [ -f "$SRC/mac-app/TrackerApp" ]; then cp "$SRC/mac-app/TrackerApp" "$DEST/TrackerApp"; fi
 chmod 755 "$DEST/"*.command
+if [ -f "$DEST/mac-app/TrackerApp" ]; then chmod 755 "$DEST/mac-app/TrackerApp"; fi
 
 # The Mac app with the seal icon, in Applications, Launchpad and Spotlight.
-# It runs the tracker in its own window. Releases before 1.0.3 don't include
-# it; then the tracker opens in the browser through Start Tracker, as before.
-if [ ! -f "$DEST/TrackerApp" ]; then
+# Releases before 1.0.3 don't include it; then the tracker opens in the
+# browser through Start Tracker, as before.
+APP=""
+if [ -f "$DEST/mac-app/TrackerApp" ]; then
+  APP="$(python3 "$DEST/taiwan_etf_tracker.py" --install-app || true)"
+fi
+if [ -z "$APP" ]; then
   echo "  Installed in: $DEST"
   echo "  To open it later, double-click \"Start Tracker\" in that folder."
   echo ""
   open "$DEST"
   open "$DEST/Start Tracker.command"
   exit 0
-fi
-
-make_app() {
-  local bundle="$1/Taiwan Stock Tracker.app"
-  rm -rf "$bundle.new"
-  mkdir -p "$bundle.new/Contents/MacOS" "$bundle.new/Contents/Resources" || return 1
-  if [ -f "$DEST/AppIcon.icns" ]; then cp "$DEST/AppIcon.icns" "$bundle.new/Contents/Resources/"; fi
-  cat > "$bundle.new/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>CFBundleName</key><string>Taiwan Stock Tracker</string>
-  <key>CFBundleDisplayName</key><string>Taiwan Stock Tracker</string>
-  <key>CFBundleIdentifier</key><string>io.github.huejuenhou.taiwan-stock-tracker</string>
-  <key>CFBundleExecutable</key><string>launcher</string>
-  <key>NSHighResolutionCapable</key><true/>
-  <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
-  <key>CFBundleIconFile</key><string>AppIcon</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>LSMinimumSystemVersion</key><string>12.0</string>
-</dict></plist>
-PLIST
-  cp "$DEST/TrackerApp" "$bundle.new/Contents/MacOS/launcher"
-  chmod 755 "$bundle.new/Contents/MacOS/launcher"
-  rm -rf "$bundle" && mv "$bundle.new" "$bundle" && touch "$bundle"
-}
-if [ -w /Applications ] && make_app /Applications 2>/dev/null; then
-  APP="/Applications/Taiwan Stock Tracker.app"
-else
-  make_app "$HOME/Applications"
-  APP="$HOME/Applications/Taiwan Stock Tracker.app"
 fi
 
 echo "  Installed. Open \"Taiwan Stock Tracker\" from Applications or Launchpad any time."

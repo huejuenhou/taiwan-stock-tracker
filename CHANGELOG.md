@@ -11,6 +11,11 @@ Every issue we find and how it was fixed, newest first. Changes wait under
   the trade form no longer asks whose trade it is. Type a second name to
   switch back. New installs start as one person, named "Me". If the second
   person still has trades, the two-person view stays so nothing is hidden.
+- **Everyone gets the Mac app.** Clicking **Update now** adds the app to
+  Applications, and the zip download has an **Install App** file that does
+  the same. The app remembers which folder holds your trades, so it works
+  wherever that folder is.
+- **A bigger 台** in the app icon, the browser-tab icon and the logo.
 - **A real Mac app.** **Taiwan Stock Tracker** now opens in its own window,
   with the red seal in the Dock and no browser tabs or Terminal window.
   Quitting the app (⌘Q) stops the tracker too. Start Tracker still works
@@ -24,6 +29,13 @@ Every issue we find and how it was fixed, newest first. Changes wait under
   red seal icon, to the main Applications folder.
 - **The app looked like a website.** Opening it showed the tracker in a
   browser tab. It now has its own window (see Added).
+- **Updating from 1.0.2 wouldn't have brought the app.** Found while
+  testing: the 1.0.2 updater copies only the files it knew about, so the
+  app and its icon were left out. Now, when a new version starts and sees
+  files from its own release missing, it fetches just those (never
+  replacing existing files) and then adds the app.
+- **The app is refreshed when a newer one arrives**, but an app you deleted
+  isn't brought back.
 - **Building the app on each Mac was unreliable.** Apple's developer tools
   can be out of step with each other (on one Mac the Swift compiler
   couldn't read its own macOS SDK), so the app is now built once for each
@@ -38,7 +50,7 @@ Every issue we find and how it was fixed, newest first. Changes wait under
 - **Gray icon in the Clear and Tinted Dock styles.** macOS can only show
   an icon as see-through glass when it's made with Apple's Icon Composer
   and Xcode. Ours is a single picture, so in those styles macOS turns it
-  into a plain gray square. Planned fix: rebuild the icon with Xcode.
+  into a plain gray square.
 
 ## 1.0.2 (2026-11-25)
 

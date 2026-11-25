@@ -1,1 +1,6 @@
-<svg width="120" height="120" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="26" fill="#f4ece0"/><rect x="22" y="22" width="76" height="76" rx="10" fill="#c8322b"/><rect x="28" y="28" width="64" height="64" rx="6" fill="none" stroke="#f4ece0" stroke-width="2"/><text x="60" y="78" text-anchor="middle" font-size="46" font-weight="600" fill="#f4ece0" font-family="'PingFang TC','Heiti TC','Noto Sans TC','Microsoft JhengHei',sans-serif">台</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 1024 1024"><g transform="translate(0,0) scale(1.0)">
+<rect x="100" y="100" width="824" height="824" rx="185" fill="#f4ece0"/>
+<rect x="212" y="212" width="600" height="600" rx="80" fill="#c8322b"/>
+<rect x="258" y="258" width="508" height="508" rx="50" fill="none" stroke="#f4ece0" stroke-width="16"/>
+<text x="512" y="670" text-anchor="middle" font-size="430" font-weight="600" fill="#f4ece0" font-family="PingFang TC, Heiti TC, sans-serif">台</text>
+</g></svg>

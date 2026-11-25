@@ -8,7 +8,9 @@
 import Cocoa
 import WebKit
 
-let trackerDir = NSHomeDirectory() + "/Applications/Taiwan Stock Tracker"
+// The tracker's folder is recorded in Info.plist when the app is made.
+let trackerDir = (Bundle.main.object(forInfoDictionaryKey: "TrackerFolder") as? String)
+    ?? NSHomeDirectory() + "/Applications/Taiwan Stock Tracker"
 let trackerURL = URL(string: "http://localhost:8787/")!
 let checkURL = URL(string: "http://127.0.0.1:8787/api/update")!
 
@@ -64,8 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func startServer() {
         let script = trackerDir + "/taiwan_etf_tracker.py"
         guard FileManager.default.fileExists(atPath: script) else {
-            showMessage("Taiwan Stock Tracker isn't installed",
-                        detail: "Paste the install line from the project page into Terminal to install it again.")
+            showMessage("Can't find the tracker's folder",
+                        detail: "It was at \(trackerDir). If you moved it, open Install App in the folder's new place, or paste the install line from the project page into Terminal.")
             return
         }
         let p = Process()

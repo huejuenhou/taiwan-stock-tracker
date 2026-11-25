@@ -8,3 +8,4 @@ backups/
 .DS_Store
 __pycache__/
 tracker.log
+.mac-app-installed

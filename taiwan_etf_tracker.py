@@ -23,6 +23,8 @@ import threading
 import webbrowser
 import zipfile
 import io
+import hashlib
+import plistlib
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -384,7 +386,8 @@ UPDATE_FEED = os.environ.get(
     "ETF_UPDATE_FEED", "https://api.github.com/repos/%s/releases/latest" % GITHUB_REPO)
 UPDATE_ASSET = "taiwan-stock-tracker.zip"
 APP_FILES = ["taiwan_etf_tracker.py", "index.html", "demo-data.json", "README.md",
-             "CHANGELOG.md", "AppIcon.icns", "Start Tracker.command", "Try Demo.command"]
+             "CHANGELOG.md", "AppIcon.icns", "Start Tracker.command", "Try Demo.command",
+             "Install App.command", "mac-app/TrackerApp"]
 MAX_UPDATE_BYTES = 5 * 1024 * 1024
 CHECK_EVERY_SECONDS = 6 * 3600
 _update = {"checked": 0, "info": None}
@@ -452,12 +455,15 @@ def install_update():
     os.makedirs(keep, exist_ok=True)
     for name in APP_FILES:
         if os.path.exists(os.path.join(HERE, name)):
+            os.makedirs(os.path.dirname(os.path.join(keep, name)), exist_ok=True)
             shutil.copy2(os.path.join(HERE, name), os.path.join(keep, name))
     for name, body in new.items():
         target = os.path.join(HERE, name)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
         with open(target + ".tmp", "wb") as f:
             f.write(body)
-        os.chmod(target + ".tmp", 0o755 if name.endswith(".command") else 0o644)
+        runnable = name.endswith(".command") or name == "mac-app/TrackerApp"
+        os.chmod(target + ".tmp", 0o755 if runnable else 0o644)
         os.replace(target + ".tmp", target)
     return info["latest"]
 
@@ -469,6 +475,144 @@ def _restart_soon():
         os.environ["ETF_NO_BROWSER"] = "1"
         os.execv(sys.executable, [sys.executable, os.path.join(HERE, "taiwan_etf_tracker.py")] + sys.argv[1:])
     threading.Thread(target=go, daemon=True).start()
+
+
+# ---- the Mac app ------------------------------------------------------------
+# "Taiwan Stock Tracker.app" in Applications shows the tracker in its own
+# window (mac-app/TrackerApp). It is made here so the install line, Install
+# App and updates all build it the same way. It records this folder, so the
+# app finds the trades wherever the folder is.
+MAC_APP_BINARY = os.path.join(HERE, "mac-app", "TrackerApp")
+MAC_APP_NAME = "Taiwan Stock Tracker.app"
+MAC_APP_MARK = os.path.join(HERE, ".mac-app-installed")
+
+
+def _apps_dirs():
+    if os.environ.get("ETF_APPS_DIR"):          # for testing
+        return [os.environ["ETF_APPS_DIR"]]
+    return ["/Applications", os.path.expanduser("~/Applications")]
+
+
+def _mac_app_fingerprint():
+    h = hashlib.sha256()
+    for path in (MAC_APP_BINARY, os.path.join(HERE, "AppIcon.icns")):
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                h.update(f.read())
+    h.update(HERE.encode("utf-8"))
+    return h.hexdigest()[:16]
+
+
+def find_mac_app():
+    for d in _apps_dirs():
+        path = os.path.join(d, MAC_APP_NAME)
+        if os.path.isdir(path):
+            return path
+    return None
+
+
+def install_mac_app():
+    """Create or refresh the Mac app. Returns its path, or None if it can't be made."""
+    if sys.platform != "darwin" or not os.path.exists(MAC_APP_BINARY):
+        return None
+    for apps in _apps_dirs():
+        try:
+            os.makedirs(apps, exist_ok=True)
+            if not os.access(apps, os.W_OK):
+                continue
+            bundle = os.path.join(apps, MAC_APP_NAME)
+            new = bundle + ".new"
+            shutil.rmtree(new, ignore_errors=True)
+            os.makedirs(os.path.join(new, "Contents", "MacOS"))
+            os.makedirs(os.path.join(new, "Contents", "Resources"))
+            for src, dst, mode in ((MAC_APP_BINARY, "MacOS/launcher", 0o755),
+                                   (os.path.join(HERE, "AppIcon.icns"), "Resources/AppIcon.icns", 0o644)):
+                if os.path.exists(src):
+                    target = os.path.join(new, "Contents", dst)
+                    with open(src, "rb") as f, open(target, "wb") as out:
+                        out.write(f.read())
+                    os.chmod(target, mode)
+            with open(os.path.join(new, "Contents", "Info.plist"), "wb") as f:
+                plistlib.dump({
+                    "CFBundleName": "Taiwan Stock Tracker",
+                    "CFBundleDisplayName": "Taiwan Stock Tracker",
+                    "CFBundleIdentifier": "io.github.huejuenhou.taiwan-stock-tracker",
+                    "CFBundleExecutable": "launcher",
+                    "CFBundleIconFile": "AppIcon",
+                    "CFBundlePackageType": "APPL",
+                    "CFBundleShortVersionString": VERSION,
+                    "LSMinimumSystemVersion": "12.0",
+                    "NSHighResolutionCapable": True,
+                    "NSAppTransportSecurity": {"NSAllowsLocalNetworking": True},
+                    "TrackerFolder": HERE,
+                    "TrackerFingerprint": _mac_app_fingerprint(),
+                }, f)
+            # Remove the other location's copy so there's only one app.
+            for other in _apps_dirs():
+                if other != apps:
+                    shutil.rmtree(os.path.join(other, MAC_APP_NAME), ignore_errors=True)
+            shutil.rmtree(bundle, ignore_errors=True)
+            os.replace(new, bundle)
+            os.utime(bundle)
+            with open(MAC_APP_MARK, "w") as f:
+                f.write(bundle + "\n")
+            return bundle
+        except OSError:
+            continue
+    return None
+
+
+def _fetch_missing_files():
+    """An updater from before 1.0.3 copies only the files it knew about, so the
+    Mac app and its icon don't arrive. Fetch whatever this version's release
+    has that this folder lacks. Existing files are never overwritten."""
+    missing = [n for n in APP_FILES if not os.path.exists(os.path.join(HERE, n))]
+    if not missing:
+        return
+    rel = json.loads(_download(UPDATE_FEED, 1024 * 1024).decode("utf-8"))
+    if str(rel.get("tag_name") or "").lstrip("vV") != VERSION:
+        return   # the latest release isn't this version; the next update brings them
+    asset = next((a.get("browser_download_url") for a in rel.get("assets") or []
+                  if a.get("name") == UPDATE_ASSET), "")
+    if not asset:
+        return
+    zf = zipfile.ZipFile(io.BytesIO(_download(asset, MAX_UPDATE_BYTES)))
+    root = next((n[:-len("taiwan_etf_tracker.py")] for n in zf.namelist()
+                 if n.endswith("taiwan_etf_tracker.py") and n.count("/") <= 1), None)
+    if root is None:
+        return
+    for name in missing:
+        if root + name in zf.namelist():
+            target = os.path.join(HERE, name)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target + ".tmp", "wb") as f:
+                f.write(zf.read(root + name))
+            runnable = name.endswith(".command") or name == "mac-app/TrackerApp"
+            os.chmod(target + ".tmp", 0o755 if runnable else 0o644)
+            os.replace(target + ".tmp", target)
+
+
+def keep_mac_app_current():
+    """On start: add the app once (e.g. after updating from an older version),
+    and refresh it when a newer app or icon arrives. Never for a source checkout
+    or the demo, and never brought back once someone deleted it."""
+    if DEMO or os.environ.get("ETF_NO_MAC_APP") or os.path.isdir(os.path.join(HERE, ".git")):
+        return
+    try:
+        _fetch_missing_files()
+    except Exception:
+        pass   # offline: try again next start
+    try:
+        bundle = find_mac_app()
+        if bundle:
+            with open(os.path.join(bundle, "Contents", "Info.plist"), "rb") as f:
+                info = plistlib.load(f)
+            if info.get("TrackerFolder") == HERE and info.get("TrackerFingerprint") != _mac_app_fingerprint():
+                install_mac_app()
+        elif not os.path.exists(MAC_APP_MARK):
+            install_mac_app()
+    except Exception:
+        pass   # the tracker works without the app
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -594,6 +738,10 @@ def _tracker_already_running():
 
 
 def main():
+    if "--install-app" in sys.argv[1:]:
+        path = install_mac_app()
+        print(path or "")
+        sys.exit(0 if path else 1)
     url = "http://localhost:%d" % PORT
     try:
         server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
@@ -609,6 +757,7 @@ def main():
     if DEMO:
         _start_demo()   # only once we know no other demo is running on this file
     load_data()  # ensure the data file exists
+    threading.Thread(target=keep_mac_app_current, daemon=True).start()
     print("\n  Taiwan Stock Tracker %s is running%s." % (VERSION, " with sample data" if DEMO else ""))
     print("  Open:  %s" % url)
     print("  Data file:  %s" % DATA_FILE)

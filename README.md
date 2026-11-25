@@ -33,8 +33,10 @@ app if you installed an earlier version.
 1. **[Download taiwan-stock-tracker.zip](https://github.com/huejuenhou/taiwan-stock-tracker/releases/latest/download/taiwan-stock-tracker.zip)**
    and double-click it to unzip. Move the **Taiwan Stock Tracker** folder
    anywhere you like, such as Documents.
-2. Double-click **Start Tracker**.
-3. macOS says it **"could not verify"** the app, because it isn't from the
+2. Double-click **Install App** to add **Taiwan Stock Tracker** to your
+   Applications folder. Leave the folder where it is afterwards: the app
+   keeps your trades there. (If you move it, open Install App again.)
+3. macOS says it **"could not verify"** the file, because it isn't from the
    App Store. Click **Done**, then open **System Settings → Privacy &
    Security**, scroll down and click **Open Anyway**. You only do this once.
 
@@ -50,13 +52,14 @@ Nothing else needs installing.
 - Open **Taiwan Stock Tracker** from Applications, Launchpad or Spotlight.
   It opens in its own window. Drag it to your Dock to keep it handy, and
   quit it with **⌘Q** when you're done.
-- With the zip download, double-click **Start Tracker** instead. That opens
-  the tracker in your browser, with a Terminal window doing the work behind
-  it; keep that window open while you use it.
+- Prefer the browser? Double-click **Start Tracker** in the folder. That
+  opens the tracker in your browser, with a Terminal window doing the work
+  behind it; keep that window open while you use it.
 - To look around with made-up trades first, double-click **Try Demo** in
   the **Taiwan Stock Tracker** folder.
-- Your trades are saved in the Applications folder inside your home folder,
-  in **Taiwan Stock Tracker** (in Finder, press **⌘ Shift H** to go home).
+- With the install line, your trades are saved in the Applications folder
+  inside your home folder, in **Taiwan Stock Tracker** (in Finder, press
+  **⌘ Shift H** to go home). With the zip, they're in the folder you unzipped.
 
 ## Updates
 
@@ -67,15 +70,15 @@ replaces its own files, restarts and reloads the page by itself.
 - Your trades, settings, price history and backups are never touched.
 - The version you had is kept in `backups/app-<version>/`, just in case.
 - Updates don't bring back the macOS security prompt.
-- Coming from 1.0.2 or earlier? **Update now** brings the new version, but
-  to add the Mac app to Applications, run the install line once more.
+- From 1.0.3 on, **Update now** also adds or refreshes the Mac app in
+  Applications, including when you update from an earlier version.
 
 ## Known issues
 
 - **Gray icon in the Clear and Tinted Dock styles.** In macOS's one-tone
   icon styles, the red seal icon turns into a plain gray square instead of
-  see-through glass. Those styles need an icon made with Apple's Xcode,
-  which is planned. The icon looks right in the Default and Dark styles.
+  see-through glass. Those styles need an icon made with Apple's Xcode.
+  The icon looks right in the Default and Dark styles.
 
 Every issue found so far, and how it was fixed, is in the
 [changelog](CHANGELOG.md).
@@ -133,7 +136,8 @@ in the trade's **Fees & tax** field.
 
 ## Files
 
-- `Start Tracker.command` / `Try Demo.command`: double-click to open
+- `Install App.command`: adds the Mac app to Applications (for the zip download)
+- `Start Tracker.command` / `Try Demo.command`: open the tracker or the demo in the browser
 - `install.sh`: the one-line installer; it also adds the app to Applications
 - `mac-app/`: the Mac app window (`TrackerApp.swift`), its build script and the built app
 - `AppIcon.icns`, `logo.svg`: the red seal icon and logo
