@@ -6,6 +6,10 @@ A small Mac app for tracking the Taiwan stocks and ETFs you trade, on your
 own or with a partner. Everything stays on your Mac: your trades are saved
 in a file next to the app, and prices come from the Taiwan Stock Exchange.
 
+> **Coming in version 1.0.3:** the tracker as a real Mac app in its own
+> window, and one-person mode. Until 1.0.3 is released, the install line
+> opens the tracker in your browser. See [what's changed](CHANGELOG.md).
+
 ## Install
 
 ### Easiest: one line in Terminal
@@ -21,7 +25,8 @@ in a file next to the app, and prices come from the Taiwan Stock Exchange.
    Applications folder and Launchpad, and opens.
 
 This way skips the macOS security warning. Running the same line again
-reinstalls the app and keeps your trades.
+reinstalls the app and keeps your trades, so it's also how to add the Mac
+app if you installed an earlier version.
 
 ### Or: download the zip
 
@@ -62,6 +67,18 @@ replaces its own files, restarts and reloads the page by itself.
 - Your trades, settings, price history and backups are never touched.
 - The version you had is kept in `backups/app-<version>/`, just in case.
 - Updates don't bring back the macOS security prompt.
+- Coming from 1.0.2 or earlier? **Update now** brings the new version, but
+  to add the Mac app to Applications, run the install line once more.
+
+## Known issues
+
+- **Gray icon in the Clear and Tinted Dock styles.** In macOS's one-tone
+  icon styles, the red seal icon turns into a plain gray square instead of
+  see-through glass. Those styles need an icon made with Apple's Xcode,
+  which is planned. The icon looks right in the Default and Dark styles.
+
+Every issue found so far, and how it was fixed, is in the
+[changelog](CHANGELOG.md).
 
 ## Requirements
 

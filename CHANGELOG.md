@@ -31,6 +31,14 @@ Every issue we find and how it was fixed, newest first. Changes wait under
 
 ### Changed
 - Updates now also bring the newest changelog and app icon.
+- The install line only adds the Mac app when the release includes it, so
+  it keeps working the old way with releases from before the app existed.
+
+### Known issues
+- **Gray icon in the Clear and Tinted Dock styles.** macOS can only show
+  an icon as see-through glass when it's made with Apple's Icon Composer
+  and Xcode. Ours is a single picture, so in those styles macOS turns it
+  into a plain gray square. Planned fix: rebuild the icon with Xcode.
 
 ## 1.0.2 (2026-11-25)
 

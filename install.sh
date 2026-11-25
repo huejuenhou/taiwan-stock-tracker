@@ -42,9 +42,18 @@ if [ -f "$SRC/mac-app/TrackerApp" ]; then cp "$SRC/mac-app/TrackerApp" "$DEST/Tr
 chmod 755 "$DEST/"*.command
 
 # The Mac app with the seal icon, in Applications, Launchpad and Spotlight.
-# It runs the tracker in its own window. If the app file is missing it falls
-# back to a small launcher that opens the tracker in the browser.
-make_launcher() {
+# It runs the tracker in its own window. Releases before 1.0.3 don't include
+# it; then the tracker opens in the browser through Start Tracker, as before.
+if [ ! -f "$DEST/TrackerApp" ]; then
+  echo "  Installed in: $DEST"
+  echo "  To open it later, double-click \"Start Tracker\" in that folder."
+  echo ""
+  open "$DEST"
+  open "$DEST/Start Tracker.command"
+  exit 0
+fi
+
+make_app() {
   local bundle="$1/Taiwan Stock Tracker.app"
   rm -rf "$bundle.new"
   mkdir -p "$bundle.new/Contents/MacOS" "$bundle.new/Contents/Resources" || return 1
@@ -65,29 +74,14 @@ make_launcher() {
   <key>LSMinimumSystemVersion</key><string>12.0</string>
 </dict></plist>
 PLIST
-  cat > "$bundle.new/Contents/MacOS/launcher" <<'LAUNCHER'
-#!/bin/bash
-DIR="$HOME/Applications/Taiwan Stock Tracker"
-if /usr/bin/curl -s -m 2 http://127.0.0.1:8787/api/update | /usr/bin/grep -q '"current"'; then
-  /usr/bin/open "http://localhost:8787"
-  exit 0
-fi
-if [ ! -f "$DIR/Start Tracker.command" ]; then
-  /usr/bin/osascript -e 'display alert "Taiwan Stock Tracker is not installed" message "Paste the install line from the project page into Terminal to install it again."'
-  exit 1
-fi
-/usr/bin/open -a Terminal "$DIR/Start Tracker.command"
-LAUNCHER
-  if [ -f "$DEST/TrackerApp" ]; then
-    cp "$DEST/TrackerApp" "$bundle.new/Contents/MacOS/launcher"   # the real app window
-  fi
+  cp "$DEST/TrackerApp" "$bundle.new/Contents/MacOS/launcher"
   chmod 755 "$bundle.new/Contents/MacOS/launcher"
   rm -rf "$bundle" && mv "$bundle.new" "$bundle" && touch "$bundle"
 }
-if [ -w /Applications ] && make_launcher /Applications 2>/dev/null; then
+if [ -w /Applications ] && make_app /Applications 2>/dev/null; then
   APP="/Applications/Taiwan Stock Tracker.app"
 else
-  make_launcher "$HOME/Applications"
+  make_app "$HOME/Applications"
   APP="$HOME/Applications/Taiwan Stock Tracker.app"
 fi
 
