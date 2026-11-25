@@ -29,7 +29,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 GITHUB_REPO = "huejuenhou/taiwan-stock-tracker"
 INDEX = os.path.join(HERE, "index.html")
 # Demo mode (python3 taiwan_etf_tracker.py --demo) opens made-up trades on
@@ -583,17 +583,32 @@ def _start_demo():
         os.replace(tmp, DATA_FILE)
 
 
+def _tracker_already_running():
+    """True when this port already answers like the tracker (opened twice)."""
+    try:
+        req = urllib.request.Request("http://127.0.0.1:%d/api/update" % PORT)
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            return "current" in json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return False
+
+
 def main():
-    if DEMO:
-        _start_demo()
-    load_data()  # ensure the data file exists
+    url = "http://localhost:%d" % PORT
     try:
         server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
     except OSError as e:
+        if _tracker_already_running():
+            print("\n  Taiwan Stock Tracker is already running, so its page was opened again.")
+            print("  You can close this window; the app keeps running in its other window.\n")
+            webbrowser.open(url)
+            sys.exit(0)
         print("Could not start on port %d: %s" % (PORT, e))
-        print("Something may already be using it. Try:  ETF_PORT=8899 python3 taiwan_etf_tracker.py")
+        print("Something else is using it. Try:  ETF_PORT=8899 python3 taiwan_etf_tracker.py")
         sys.exit(1)
-    url = "http://localhost:%d" % PORT
+    if DEMO:
+        _start_demo()   # only once we know no other demo is running on this file
+    load_data()  # ensure the data file exists
     print("\n  Taiwan Stock Tracker %s is running%s." % (VERSION, " with sample data" if DEMO else ""))
     print("  Open:  %s" % url)
     print("  Data file:  %s" % DATA_FILE)
