@@ -384,7 +384,7 @@ UPDATE_FEED = os.environ.get(
     "ETF_UPDATE_FEED", "https://api.github.com/repos/%s/releases/latest" % GITHUB_REPO)
 UPDATE_ASSET = "taiwan-stock-tracker.zip"
 APP_FILES = ["taiwan_etf_tracker.py", "index.html", "demo-data.json", "README.md",
-             "Start Tracker.command", "Try Demo.command"]
+             "CHANGELOG.md", "AppIcon.icns", "Start Tracker.command", "Try Demo.command"]
 MAX_UPDATE_BYTES = 5 * 1024 * 1024
 CHECK_EVERY_SECONDS = 6 * 3600
 _update = {"checked": 0, "info": None}

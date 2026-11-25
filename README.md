@@ -17,8 +17,8 @@ in a file next to the app, and prices come from the Taiwan Stock Exchange.
    curl -fsSL https://raw.githubusercontent.com/huejuenhou/taiwan-stock-tracker/main/install.sh | bash
    ```
 
-3. The app opens in your browser. It's installed in the **Applications**
-   folder inside your home folder, in **Taiwan Stock Tracker**.
+3. **Taiwan Stock Tracker**, with the red seal icon, is added to your
+   Applications folder and Launchpad, and opens.
 
 This way skips the macOS security warning. Running the same line again
 reinstalls the app and keeps your trades.
@@ -42,10 +42,16 @@ Nothing else needs installing.
 
 ## Use it
 
-- Double-click **Start Tracker** to track your own trades, or **Try Demo**
-  to look around with made-up trades first.
-- The app opens in your browser at `http://localhost:8787`. Keep the
-  Terminal window open while you use it; closing that window stops the app.
+- Open **Taiwan Stock Tracker** from Applications, Launchpad or Spotlight.
+  It opens in its own window. Drag it to your Dock to keep it handy, and
+  quit it with **⌘Q** when you're done.
+- With the zip download, double-click **Start Tracker** instead. That opens
+  the tracker in your browser, with a Terminal window doing the work behind
+  it; keep that window open while you use it.
+- To look around with made-up trades first, double-click **Try Demo** in
+  the **Taiwan Stock Tracker** folder.
+- Your trades are saved in the Applications folder inside your home folder,
+  in **Taiwan Stock Tracker** (in Finder, press **⌘ Shift H** to go home).
 
 ## Updates
 
@@ -106,7 +112,10 @@ in the trade's **Fees & tax** field.
 ## Files
 
 - `Start Tracker.command` / `Try Demo.command`: double-click to open
-- `install.sh`: the one-line installer
+- `install.sh`: the one-line installer; it also adds the app to Applications
+- `mac-app/`: the Mac app window (`TrackerApp.swift`), its build script and the built app
+- `AppIcon.icns`, `logo.svg`: the red seal icon and logo
+- `CHANGELOG.md`: every issue found and how it was fixed, by version
 - `taiwan_etf_tracker.py`: the local server (Python standard library only)
 - `index.html`: the app's interface
 - `demo-data.json`: the sample trades used by Try Demo
@@ -121,8 +130,11 @@ To run it from Terminal instead: `python3 taiwan_etf_tracker.py`
 For the person who maintains this repository.
 
 1. Raise `VERSION` near the top of `taiwan_etf_tracker.py`, for example
-   to `1.1.0`, and commit.
-2. Build the zip and publish the release:
+   to `1.1.0`, move the **Unreleased** notes in `CHANGELOG.md` under that
+   version, and commit.
+2. If `mac-app/TrackerApp.swift` changed, run `mac-app/build.sh` and commit
+   the rebuilt `mac-app/TrackerApp`.
+3. Build the zip and publish the release:
 
    ```bash
    git archive --prefix="Taiwan Stock Tracker/" -o taiwan-stock-tracker.zip HEAD
