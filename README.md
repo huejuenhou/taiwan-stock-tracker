@@ -1,3 +1,5 @@
+<img src="logo.svg" width="96" alt="Taiwan Stock Tracker logo: a red seal with the character 台">
+
 # Taiwan Stock Tracker
 
 A small Mac app for tracking Taiwan stocks and ETFs that two people trade,
