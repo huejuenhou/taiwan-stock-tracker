@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 GITHUB_REPO = "huejuenhou/taiwan-stock-tracker"
 INDEX = os.path.join(HERE, "index.html")
 # Demo mode (python3 taiwan_etf_tracker.py --demo) opens made-up trades on

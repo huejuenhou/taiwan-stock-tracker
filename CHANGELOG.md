@@ -3,7 +3,7 @@
 Every issue we find and how it was fixed, newest first. Changes wait under
 **Unreleased** until they ship together in the next version.
 
-## Unreleased
+## 1.0.3 (2026-11-26)
 
 ### Added
 - **A new interface built with Astryx**, Meta's open-source design system:

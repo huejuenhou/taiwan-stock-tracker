@@ -8,9 +8,7 @@ in a file next to the app, and prices come from the Taiwan Stock Exchange.
 The interface is built with [Astryx](https://github.com/meta/astryx), Meta's
 open-source design system, and follows your Mac's light or dark appearance.
 
-> **Coming in version 1.0.3:** the tracker as a real Mac app in its own
-> window, the new Astryx interface, and one-person mode. Until 1.0.3 is released, the install line
-> opens the tracker in your browser. See [what's changed](CHANGELOG.md).
+See [what's changed](CHANGELOG.md) in each version.
 
 ## Install
 
@@ -146,7 +144,7 @@ in the trade's **Fees & tax** field.
 - `CHANGELOG.md`: every issue found and how it was fixed, by version
 - `taiwan_etf_tracker.py`: the local server (Python standard library only)
 - `index.html`: the app's interface, built from `web/` (don't edit it by hand)
-- `web/`: the interface's source (React and Astryx)
+- `web/`: the interface's source (React and Astryx), in the repository only
 - `THIRD-PARTY-NOTICES.md`: licenses of the open-source packages in the interface
 - `demo-data.json`: the sample trades used by Try Demo
 - `taiwan-etf-data.json`: your trades, created on first run
