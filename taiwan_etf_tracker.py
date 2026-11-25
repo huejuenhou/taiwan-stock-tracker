@@ -294,7 +294,7 @@ def needed_months(transactions):
     for t in transactions:
         sym, date = str(t.get("symbol") or ""), str(t.get("date") or "").replace("/", "-")
         if re.fullmatch(r"[0-9A-Za-z]{4,8}", sym) and re.match(r"\d{4}-\d{2}", date):
-            by_symbol.setdefault(sym, []).append(t | {"date": date})
+            by_symbol.setdefault(sym, []).append(dict(t, date=date))
     this_month = taipei_now().strftime("%Y%m")
     needed = []
     for sym, txs in by_symbol.items():

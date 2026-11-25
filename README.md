@@ -4,24 +4,46 @@ A small Mac app for tracking Taiwan stocks and ETFs that two people trade,
 together and separately. Everything stays on your Mac: your trades are saved
 in a file next to the app, and prices come from the Taiwan Stock Exchange.
 
-## Get started
+## Install
 
-1. Download the latest **zip** from the Releases page and unzip it.
-2. Double-click **Try Demo** to look around with made-up trades, or
-   **Start Tracker** to track your own.
-3. The app opens in your browser. Keep the Terminal window open while
-   you use it; closing that window stops the app.
+### Easiest: one line in Terminal
 
-### The first time you open it
+1. Open **Terminal**: press **⌘ Space**, type `Terminal` and press Return.
+2. Copy this line, paste it into Terminal and press Return:
 
-- **"Apple could not verify…"**: the app isn't from the App Store, so macOS
-  asks once. Open **System Settings → Privacy & Security**, scroll down and
-  click **Open Anyway** next to the file's name.
-- **"Install Command Line Tools?"**: the app runs on Python, which comes with
-  Apple's free Command Line Tools. Click **Install**, wait a few minutes,
-  then double-click the file again. Macs that already have them skip this.
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/huejuenhou/taiwan-stock-tracker/main/install.sh | bash
+   ```
 
+3. The app opens in your browser. It's installed in the **Applications**
+   folder inside your home folder, in **Taiwan Stock Tracker**.
+
+This way skips the macOS security warning. Running the same line again
+reinstalls the app and keeps your trades.
+
+### Or: download the zip
+
+1. **[Download taiwan-stock-tracker.zip](https://github.com/huejuenhou/taiwan-stock-tracker/releases/latest/download/taiwan-stock-tracker.zip)**
+   and double-click it to unzip. Move the **Taiwan Stock Tracker** folder
+   anywhere you like, such as Documents.
+2. Double-click **Start Tracker**.
+3. macOS says it **"could not verify"** the app, because it isn't from the
+   App Store. Click **Done**, then open **System Settings → Privacy &
+   Security**, scroll down and click **Open Anyway**. You only do this once.
+
+### If your Mac asks to install "Command Line Tools"
+
+The app runs on Python, which comes with Apple's free Command Line Tools.
+Click **Install** and wait a few minutes, then run the install line or
+double-click **Start Tracker** again. Macs that already have them skip this.
 Nothing else needs installing.
+
+## Use it
+
+- Double-click **Start Tracker** to track your own trades, or **Try Demo**
+  to look around with made-up trades first.
+- The app opens in your browser at `http://localhost:8787`. Keep the
+  Terminal window open while you use it; closing that window stops the app.
 
 ## Updates
 
@@ -32,6 +54,11 @@ replaces its own files, restarts and reloads the page by itself.
 - Your trades, settings, price history and backups are never touched.
 - The version you had is kept in `backups/app-<version>/`, just in case.
 - Updates don't bring back the macOS security prompt.
+
+## Requirements
+
+- A Mac running macOS 12 (Monterey) or later.
+- An internet connection for prices. Everything else works offline.
 
 ## Pages
 
@@ -77,6 +104,7 @@ in the trade's **Fees & tax** field.
 ## Files
 
 - `Start Tracker.command` / `Try Demo.command`: double-click to open
+- `install.sh`: the one-line installer
 - `taiwan_etf_tracker.py`: the local server (Python standard library only)
 - `index.html`: the app's interface
 - `demo-data.json`: the sample trades used by Try Demo
