@@ -5,9 +5,11 @@
 A small Mac app for tracking the Taiwan stocks and ETFs you trade, on your
 own or with a partner. Everything stays on your Mac: your trades are saved
 in a file next to the app, and prices come from the Taiwan Stock Exchange.
+The interface is built with [Astryx](https://github.com/meta/astryx), Meta's
+open-source design system, and follows your Mac's light or dark appearance.
 
 > **Coming in version 1.0.3:** the tracker as a real Mac app in its own
-> window, and one-person mode. Until 1.0.3 is released, the install line
+> window, the new Astryx interface, and one-person mode. Until 1.0.3 is released, the install line
 > opens the tracker in your browser. See [what's changed](CHANGELOG.md).
 
 ## Install
@@ -143,13 +145,32 @@ in the trade's **Fees & tax** field.
 - `AppIcon.icns`, `logo.svg`: the red seal icon and logo
 - `CHANGELOG.md`: every issue found and how it was fixed, by version
 - `taiwan_etf_tracker.py`: the local server (Python standard library only)
-- `index.html`: the app's interface
+- `index.html`: the app's interface, built from `web/` (don't edit it by hand)
+- `web/`: the interface's source (React and Astryx)
+- `THIRD-PARTY-NOTICES.md`: licenses of the open-source packages in the interface
 - `demo-data.json`: the sample trades used by Try Demo
 - `taiwan-etf-data.json`: your trades, created on first run
 - `backups/`: daily copies of your data file
 
 To run it from Terminal instead: `python3 taiwan_etf_tracker.py`
 (add `--demo` for the sample trades).
+
+## Changing the interface
+
+The interface is a React app in `web/`, built into the single `index.html`
+the tracker serves, so people who install the app need nothing extra. To
+work on it you need [Node.js](https://nodejs.org):
+
+```bash
+cd web
+npm install
+npm run build
+```
+
+`npm run build` rewrites `index.html` in the main folder. Run
+`node notices.mjs` after adding or updating a package, to refresh
+`THIRD-PARTY-NOTICES.md`. `web/AGENTS.md` is Astryx's guide for working on
+the interface with an AI assistant.
 
 ## Publishing a new version
 
@@ -158,8 +179,9 @@ For the person who maintains this repository.
 1. Raise `VERSION` near the top of `taiwan_etf_tracker.py`, for example
    to `1.1.0`, move the **Unreleased** notes in `CHANGELOG.md` under that
    version, and commit.
-2. If `mac-app/TrackerApp.swift` changed, run `mac-app/build.sh` and commit
-   the rebuilt `mac-app/TrackerApp`.
+2. If anything in `web/` changed, run `npm run build` there and commit the
+   rebuilt `index.html`. If `mac-app/TrackerApp.swift` changed, run
+   `mac-app/build.sh` and commit the rebuilt `mac-app/TrackerApp`.
 3. Build the zip and publish the release:
 
    ```bash

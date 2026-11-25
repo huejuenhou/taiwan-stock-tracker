@@ -9,3 +9,4 @@ backups/
 __pycache__/
 tracker.log
 .mac-app-installed
+web/node_modules/

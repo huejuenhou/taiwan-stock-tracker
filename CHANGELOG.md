@@ -6,6 +6,12 @@ Every issue we find and how it was fixed, newest first. Changes wait under
 ## Unreleased
 
 ### Added
+- **A new interface built with Astryx**, Meta's open-source design system:
+  a top bar with the three pages and Settings, headline cards, cleaner
+  tables, a total-return chart you can hover and click, calendar days you
+  select, proper dialogs and banners, and automatic light and dark mode.
+  All calculations are unchanged; the totals, daily results and dividend
+  figures were checked against the previous page and match exactly.
 - **One-person mode.** Leave the second name empty in Settings and the app
   is for one person: no Combined or per-person tabs, no owner column, and
   the trade form no longer asks whose trade it is. Type a second name to
@@ -40,6 +46,15 @@ Every issue we find and how it was fixed, newest first. Changes wait under
   can be out of step with each other (on one Mac the Swift compiler
   couldn't read its own macOS SDK), so the app is now built once for each
   release, for both Apple Silicon and Intel Macs, instead of on every Mac.
+
+### Issues fixed while rebuilding
+- **Tables were cramped in a narrow window.** Edit and Delete were cut off
+  and dates and amounts broke across lines. They're now icon buttons with
+  tooltips, and numbers stay on one line; on a phone-width window the
+  tables scroll sideways instead of squeezing.
+- **Building needed tools this Mac didn't have.** The interface is now
+  built once with Node.js and shipped as one finished page, so people who
+  install the app still need nothing extra.
 
 ### Changed
 - Updates now also bring the newest changelog and app icon.
