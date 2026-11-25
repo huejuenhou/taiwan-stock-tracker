@@ -1,0 +1,118 @@
+{
+  "rev": 0,
+  "settings": {
+    "p1": "Alex",
+    "p2": "Sam",
+    "joint": "Joint",
+    "feeDiscount": 60
+  },
+  "transactions": [
+    {
+      "id": "d00",
+      "person": "p2",
+      "type": "buy",
+      "date": "2026-01-12",
+      "symbol": "0056",
+      "shares": 2000,
+      "price": 37.67
+    },
+    {
+      "id": "d01",
+      "person": "p1",
+      "type": "buy",
+      "date": "2026-02-10",
+      "symbol": "0050",
+      "shares": 1000,
+      "price": 75.5
+    },
+    {
+      "id": "d02",
+      "person": "p1",
+      "type": "buy",
+      "date": "2026-03-16",
+      "symbol": "2330",
+      "shares": 100,
+      "price": 1845.0
+    },
+    {
+      "id": "d03",
+      "person": "p2",
+      "type": "buy",
+      "date": "2026-04-13",
+      "symbol": "00878",
+      "shares": 3000,
+      "price": 23.01
+    },
+    {
+      "id": "d04",
+      "person": "joint",
+      "type": "buy",
+      "date": "2026-05-11",
+      "symbol": "00919",
+      "shares": 1000,
+      "price": 25.75
+    },
+    {
+      "id": "d05",
+      "person": "p1",
+      "type": "buy",
+      "date": "2026-06-15",
+      "symbol": "0050",
+      "shares": 500,
+      "price": 105.25
+    },
+    {
+      "id": "d06",
+      "person": "p2",
+      "type": "sell",
+      "date": "2026-08-18",
+      "symbol": "00878",
+      "shares": 1000,
+      "price": 32.38
+    },
+    {
+      "id": "d07",
+      "person": "p1",
+      "type": "sell",
+      "date": "2026-09-22",
+      "symbol": "2330",
+      "shares": 50,
+      "price": 2460.0
+    }
+  ],
+  "dividends": [],
+  "expected": [
+    {
+      "id": "de0",
+      "symbol": "0056",
+      "person": "p2",
+      "exDate": "2027-01-21",
+      "payDate": "2027-02-12",
+      "perUnit": 1.0,
+      "status": "estimate",
+      "actual": null
+    },
+    {
+      "id": "de1",
+      "symbol": "00878",
+      "person": "p2",
+      "exDate": "2027-02-16",
+      "payDate": "2027-03-13",
+      "perUnit": 0.4,
+      "status": "estimate",
+      "actual": null
+    },
+    {
+      "id": "de2",
+      "symbol": "00919",
+      "person": "joint",
+      "exDate": "2026-12-16",
+      "payDate": "2027-01-14",
+      "perUnit": 0.7,
+      "status": "estimate",
+      "actual": null
+    }
+  ],
+  "prices": {},
+  "manual": []
+}

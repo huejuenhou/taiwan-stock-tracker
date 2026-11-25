@@ -1,0 +1,9 @@
+# Personal data: never commit
+taiwan-etf-data.json
+taiwan-etf-data.damaged-*.json
+taiwan-etf-demo.json
+taiwan-etf-history.json
+backups/
+*.tmp
+.DS_Store
+__pycache__/

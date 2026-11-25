@@ -1,0 +1,1396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Taiwan Stock Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  /* Taiwan market colors: 漲=red (gain), 跌=green (loss). */
+  :root {
+    --bg: #f6f4f1; --surface: #ffffff; --surface-2: #f1eee9; --line: #e3ddd4;
+    --fg: #241f1a; --muted: #7c7268;
+    --accent: #1b4965; --accent-soft: #e7eef3;
+    --gain: #d1314a; --gain-soft: #fbe7ea; --loss: #1f8a5b; --loss-soft: #e2f2ea;
+    --joint: #a06a1f; --p1: #2f6f8f; --p2: #8a4f9e;
+    --radius: 14px; --shadow: 0 1px 2px rgba(36,31,26,.04), 0 6px 20px rgba(36,31,26,.05);
+    --font: "Hanken Grotesk", "PingFang TC", "Heiti TC", system-ui, sans-serif;
+    --mono: "DM Mono", "PingFang TC", ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17140f; --surface: #211c16; --surface-2: #2a241c; --line: #392f24;
+      --fg: #f0e9df; --muted: #a2978a; --accent: #6fa8c7; --accent-soft: #233744;
+      --gain: #ff5f74; --gain-soft: #3a1b22; --loss: #3fc187; --loss-soft: #113028;
+      --joint: #d9a653; --p1: #6fb6d6; --p2: #c186d6;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17140f; --surface: #211c16; --surface-2: #2a241c; --line: #392f24;
+    --fg: #f0e9df; --muted: #a2978a; --accent: #6fa8c7; --accent-soft: #233744;
+    --gain: #ff5f74; --gain-soft: #3a1b22; --loss: #3fc187; --loss-soft: #113028;
+    --joint: #d9a653; --p1: #6fb6d6; --p2: #c186d6;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35); color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font); line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left,0px)); padding-right: max(16px, env(safe-area-inset-right,0px)); padding-block: 28px 64px; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  header.top { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+  .title-block h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; margin: 0; }
+  .title-block p { margin: 3px 0 0; color: var(--muted); font-size: .9rem; }
+  .top-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .legend { display: inline-flex; align-items: center; gap: 10px; font-size: .78rem; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+  .legend b { font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; vertical-align: -1px; margin-right: 4px; }
+
+  button { font-family: inherit; cursor: pointer; }
+  .btn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 10px; padding: 9px 14px; font-size: .88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 7px; transition: background .15s, border-color .15s, transform .05s; }
+  .btn:hover { background: var(--surface-2); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .btn.ghost { background: transparent; }
+  .btn.sm { padding: 6px 10px; font-size: .82rem; border-radius: 8px; }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 15px 16px; box-shadow: var(--shadow); }
+  .tile .label { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  .tile .value { font-size: 1.5rem; font-weight: 700; margin-top: 6px; letter-spacing: -.01em; }
+  .tile .sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+  .tile .value.big { font-size: 1.7rem; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 7px 15px; font-size: .86rem; font-weight: 600; }
+  .tab[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .tab .pdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: 0; }
+
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+  .panel-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .panel-head h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+  .panel-head .count { color: var(--muted); font-size: .82rem; font-weight: 500; }
+  .panel-head .spacer { margin-left: auto; }
+
+  .tbl-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  th, td { text-align: right; padding: 11px 12px; font-size: .88rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--surface); }
+  th:first-child, td:first-child { text-align: left; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  .sym { font-weight: 700; font-family: var(--mono); }
+  .pill { font-size: .72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; display: inline-block; }
+  .tag { font-size: .7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; letter-spacing: .02em; }
+  .tag.buy { color: var(--loss); background: var(--loss-soft); }
+  .tag.sell { color: var(--gain); background: var(--gain-soft); }
+  .up { color: var(--gain); } .down { color: var(--loss); } .flat { color: var(--muted); }
+  .iconbtn { border: 1px solid transparent; background: transparent; color: var(--muted); border-radius: 7px; padding: 4px 7px; font-size: .8rem; font-weight: 600; }
+  .iconbtn:hover { background: var(--surface-2); color: var(--fg); border-color: var(--line); }
+
+  .alloc { display: grid; grid-template-columns: 180px 1fr; gap: 20px; padding: 18px 16px; align-items: center; }
+  .alloc svg { width: 100%; height: auto; max-width: 180px; }
+  .alloc-legend { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .al-row { display: flex; align-items: center; gap: 9px; font-size: .86rem; }
+  .al-row .nm2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .al-row .pct { font-family: var(--mono); color: var(--muted); font-size: .82rem; }
+
+  .empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .empty h3 { color: var(--fg); margin: 0 0 6px; font-size: 1rem; }
+  .empty p { margin: 0 0 16px; font-size: .9rem; }
+
+  .banner { border-radius: var(--radius); padding: 12px 15px; font-size: .88rem; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
+  .banner.warn { background: var(--gain-soft); color: var(--gain); border: 1px solid color-mix(in srgb, var(--gain) 30%, transparent); }
+  .banner.info { background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(20,16,12,.5); display: flex; align-items: flex-end; justify-content: center; padding: 0; z-index: 50; }
+  @media (min-width: 560px) { .modal-bg { align-items: center; padding: 20px; } }
+  .modal { background: var(--surface); width: 100%; max-width: 460px; border-radius: 18px 18px 0 0; box-shadow: var(--shadow); max-height: 92vh; overflow-y: auto; padding-bottom: max(16px, env(safe-area-inset-bottom,0px)); }
+  @media (min-width: 560px) { .modal { border-radius: 18px; } }
+  .modal h2 { font-size: 1.12rem; margin: 0; padding: 18px 20px 4px; }
+  .modal .mp { padding: 0 20px 16px; color: var(--muted); font-size: .85rem; }
+  form.mform { padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: .78rem; font-weight: 600; color: var(--muted); }
+  .field input, .field select { font-family: inherit; font-size: .95rem; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); }
+  .field .hint { font-size: .74rem; color: var(--muted); }
+  .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .seg { display: flex; gap: 6px; }
+  .seg button { flex: 1; border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: 10px; padding: 9px; font-weight: 600; font-size: .86rem; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); }
+  .mactions { display: flex; gap: 10px; margin-top: 4px; }
+  .mactions .btn { flex: 1; justify-content: center; }
+  .mactions .btn.primary { flex: 1.4; }
+  .danger { color: var(--gain); }
+  .footnote { color: var(--muted); font-size: .78rem; text-align: center; margin-top: 8px; }
+  .refresh-bar { position: fixed; inset: 0 0 auto 0; height: 3px; overflow: hidden; opacity: 0; z-index: 50; pointer-events: none; }
+  .refresh-bar::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 35%; background: var(--accent); animation: refresh-slide 1.1s ease-in-out infinite; }
+  body.refreshing .refresh-bar { opacity: 1; }
+  .ico-refresh { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  body.refreshing .ico-refresh { animation: refresh-spin .9s linear infinite; }
+  body.refreshing #refreshBtn { cursor: progress; }
+  .sync { display: none; align-items: center; gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 600; white-space: nowrap; }
+  .sync[data-state] { display: inline-flex; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .sync[data-state="busy"] { color: var(--accent); }
+  .sync[data-state="busy"] .sync-dot { background: var(--accent); animation: refresh-pulse 1s ease-in-out infinite; }
+  .sync[data-state="ok"] .sync-dot { background: var(--accent); }
+  .sync[data-state="warn"] { color: var(--joint); }
+  .sync[data-state="warn"] .sync-dot { background: var(--joint); }
+  .tile.flash { animation: refresh-flash 1.2s ease-out; }
+  .pages { display: flex; gap: 18px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .pages a { padding: 8px 2px 10px; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--muted); font-size: .92rem; font-weight: 600; text-decoration: none; }
+  .pages a:hover { color: var(--fg); }
+  .pages a[aria-current="page"] { color: var(--fg); border-bottom-color: var(--accent); }
+  body[data-page="dividends"] .page-portfolio, body[data-page="daily"] .page-portfolio,
+  body:not([data-page="dividends"]) .page-dividends, body:not([data-page="daily"]) .page-daily { display: none; }
+  .month-strip { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .month-chip { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 10px; padding: 6px 11px; font-size: .78rem; font-weight: 600; display: flex; flex-direction: column; align-items: flex-start; min-width: 72px; }
+  .month-chip:hover { background: var(--surface-2); }
+  .month-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--fg); }
+  .month-chip .tnum { font-size: .82rem; }
+  .day-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 12px 16px 16px; }
+  .day-head { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; text-align: center; }
+  .day { border: 1px solid transparent; border-radius: 10px; min-height: 66px; padding: 7px 9px; display: flex; flex-direction: column; justify-content: space-between; text-align: left; font: inherit; color: var(--fg); background: var(--surface-2); min-width: 0; }
+  .day .d-num { font-size: .78rem; font-weight: 600; color: var(--muted); }
+  .day .d-amt { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .86rem; font-weight: 500; white-space: nowrap; }
+  .day.up { background: var(--gain-soft); } .day.down { background: var(--loss-soft); }
+  .day.closed { background: transparent; border-color: var(--line); border-style: dashed; opacity: .55; }
+  button.day:hover { border-color: var(--muted); }
+  .day[aria-pressed="true"] { border: 2px solid var(--accent); padding: 6px 8px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .month-chip:focus-visible, button.day:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .day-total { font-size: 1.05rem; font-weight: 700; }
+  table.day-tbl { min-width: 0; }
+  .day-tbl .pill { margin-left: 6px; }
+  .day-tbl .trade { color: var(--muted); font-size: .74rem; white-space: normal; margin-top: 2px; }
+  .etf-name { color: var(--muted); font-size: .74rem; font-family: var(--font); max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chart-wrap { position: relative; padding: 6px 0 2px; }
+  .chart-wrap svg { display: block; cursor: crosshair; touch-action: pan-y; }
+  .chart-wrap text { font: 11px var(--font); fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .chart-tip { display: none; position: absolute; top: 10px; pointer-events: none; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 7px 11px; font-size: .78rem; line-height: 1.5; box-shadow: var(--shadow); white-space: nowrap; color: var(--muted); }
+  .chart-tip .tip-date { color: var(--fg); font-weight: 600; }
+  .progress { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; max-width: 260px; margin: 14px auto 0; }
+  .progress > div { height: 100%; background: var(--accent); transition: width .3s; }
+  .tag.estimate { color: var(--muted); background: var(--surface-2); }
+  .tag.announced { color: var(--accent); background: var(--accent-soft); }
+  .tag.received { color: var(--gain); background: var(--gain-soft); }
+  .tag.overdue { color: var(--joint); background: var(--surface-2); }
+  .cal-note { padding: 12px 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; line-height: 1.5; }
+  @keyframes refresh-slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+  @keyframes refresh-spin { to { transform: rotate(360deg); } }
+  @keyframes refresh-pulse { 50% { opacity: .25; } }
+  @keyframes refresh-flash { from { background: var(--accent-soft); border-color: var(--accent); } }
+  @media (prefers-reduced-motion: reduce) {
+    .refresh-bar::before { animation: none; width: 100%; }
+    body.refreshing .ico-refresh, .sync[data-state="busy"] .sync-dot, .tile.flash { animation: none; }
+  }
+  @media (max-width: 720px) {
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .alloc { grid-template-columns: 1fr; justify-items: center; }
+    .alloc-legend { width: 100%; }
+    .panel-head { flex-wrap: wrap; }
+  }
+  @media (max-width: 560px) {
+    .day-grid { gap: 4px; padding: 10px 12px 14px; }
+    .day { padding: 6px; min-height: 58px; }
+    .day[aria-pressed="true"] { padding: 5px; }
+    .day .d-amt { font-size: .72rem; }
+    .day-tbl th, .day-tbl td { padding: 10px 8px; }
+    .day-tbl .col-shares { display: none; }
+    .day-tbl .pill { display: table; margin: 3px 0 0; }
+  }
+  .demo-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45;
+    background: color-mix(in srgb, var(--joint) 14%, transparent); border: 1px solid color-mix(in srgb, var(--joint) 40%, transparent); }
+  .demo-banner[hidden], .update-banner[hidden] { display: none; }
+  .update-banner { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.45;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px;
+    background: color-mix(in srgb, var(--p1) 12%, transparent); border: 1px solid color-mix(in srgb, var(--p1) 40%, transparent); }
+  .update-actions { display: inline-flex; align-items: center; gap: 12px; }
+  .update-actions a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="refresh-bar" aria-hidden="true"></div>
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <h1>Taiwan Stock &amp; ETF Tracker</h1>
+      <p id="subtitle">Loading…</p>
+    </div>
+    <div class="top-actions">
+      <span class="legend" title="Taiwan market convention">
+        <span><span class="dot" style="background:var(--gain)"></span><b>漲 Gain</b></span>
+        <span><span class="dot" style="background:var(--loss)"></span><b>跌 Loss</b></span>
+      </span>
+      <button class="btn ghost sm" id="settingsBtn">⚙︎ Settings</button>
+    </div>
+  </header>
+
+  <div class="demo-banner" id="demoBanner" hidden>
+    <b>Sample data.</b> These trades are made up so you can look around. Changes are thrown away the next time you open Try Demo; to track your own trades, open Start Tracker.
+  </div>
+
+  <div class="update-banner" id="updateBanner" hidden>
+    <span id="updateText"></span>
+    <span class="update-actions">
+      <a id="updateNotes" target="_blank" rel="noopener">What's new</a>
+      <button class="btn sm" id="updateBtn">Update now</button>
+    </span>
+  </div>
+
+  <nav class="pages" aria-label="Pages">
+    <a href="#" data-page="portfolio">Portfolio</a>
+    <a href="#daily" data-page="daily">Daily tracker</a>
+    <a href="#dividends" data-page="dividends">Dividend calendar</a>
+  </nav>
+
+  <div id="banner-slot"></div>
+  <section class="tiles page-portfolio" id="tiles"></section>
+  <section class="tiles page-dividends" id="calTiles"></section>
+  <section class="tiles page-daily" id="dayTiles"></section>
+  <div class="tabs" id="tabs" role="tablist"></div>
+
+  <section class="panel page-daily" id="chartPanel">
+    <div class="panel-head">
+      <h2>Total return over time</h2><span class="count">after fees, without dividends</span>
+      <div class="spacer"></div>
+      <span class="day-total tnum" id="chartTotal"></span>
+    </div>
+    <div class="chart-wrap" id="chartBody"></div>
+  </section>
+
+  <section class="panel page-daily">
+    <div class="panel-head">
+      <h2 id="monthTitle">Daily gain / loss</h2><span class="count" id="monthCount"></span>
+      <div class="spacer"></div>
+      <button class="btn sm" id="prevMonth" aria-label="Previous month">‹</button>
+      <button class="btn sm" id="nextMonth" aria-label="Next month">›</button>
+    </div>
+    <div id="dayBody"></div>
+  </section>
+
+  <section class="panel page-daily" id="dayDetailPanel">
+    <div class="panel-head">
+      <h2 id="dayTitle"></h2><span class="count" id="dayCount"></span>
+      <div class="spacer"></div>
+      <span class="day-total tnum" id="dayTotal"></span>
+    </div>
+    <div id="dayDetail"></div>
+    <div class="cal-note">Each day is the change in closing price × the shares held. On days you buy or sell, it uses your trade price instead, and that trade's fees and tax count on that day. Adding up every day gives Total return on the Portfolio page. Dividends aren't included, so an ETF's price drop on its ex-dividend date shows as a loss here.</div>
+  </section>
+
+  <section class="panel page-dividends">
+    <div class="panel-head">
+      <h2>Expected payments</h2><span class="count" id="calCount"></span>
+      <div class="spacer"></div>
+      <button class="btn primary sm" id="addExpBtn">+ Add expected</button>
+    </div>
+    <div id="calBody"></div>
+    <div class="cal-note">Estimates follow each fund's recent payouts and dates until the fund announces the real ones. Shares are what each person holds the day before the ex-dividend date. Use Edit to type the correct date and amount. Dividends stay on this page and are not part of the Portfolio totals.</div>
+  </section>
+
+  <section class="panel page-dividends">
+    <div class="panel-head">
+      <h2>Already paid</h2><span class="count" id="paidCount"></span>
+    </div>
+    <div id="paidBody"></div>
+  </section>
+
+  <section class="panel page-portfolio">
+    <div class="panel-head">
+      <h2>Positions</h2><span class="count" id="posCount"></span>
+      <div class="spacer"></div>
+      <span class="sync" id="sync" role="status"><span class="sync-dot"></span><span id="syncText"></span></span>
+      <button class="btn sm" id="refreshBtn" title="Fetch live quotes now"><svg class="ico-refresh" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh</button>
+      <button class="btn sm" id="editPxBtn">Edit prices</button>
+    </div>
+    <div id="posBody"></div>
+  </section>
+
+  <section class="panel page-portfolio" id="allocPanel">
+    <div class="panel-head"><h2>Allocation</h2><span class="count" id="allocNote"></span></div>
+    <div id="allocBody"></div>
+  </section>
+
+  <section class="panel page-portfolio">
+    <div class="panel-head">
+      <h2>Transactions</h2><span class="count" id="txCount"></span>
+      <div class="spacer"></div>
+      <button class="btn primary sm" id="addTxBtn">+ Add transaction</button>
+    </div>
+    <div id="txBody"></div>
+  </section>
+
+  <p class="footnote" id="foot">Prices update automatically from the Taiwan exchange. Amounts in NT$.</p>
+</div>
+<div id="modal-slot"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var PCOLOR = { p1: "var(--p1)", p2: "var(--p2)", joint: "var(--joint)" };
+  var DONUT = ["#2f6f8f", "#d1314a", "#a06a1f", "#1f8a5b", "#8a4f9e", "#c77d3a", "#4a7a9c", "#b0486a", "#6b8f3a", "#5d5a86"];
+
+  var state = {
+    ready: false,
+    transactions: [],   // {id, type:'buy'|'sell', date, symbol, shares, price, person}
+    dividends: [],      // {id, symbol, date, amount, person}
+    expected: [],       // {id, symbol, person, exDate, payDate, perUnit, status:'estimate'|'announced', actual}
+    prices: {},         // symbol -> current price
+    settings: { p1: "Person 1", p2: "Person 2", joint: "Joint" },
+    filter: "all",      // all | p1 | p2 | joint
+    rev: 0,             // version of the saved file this tab last saw
+    manual: {},         // symbol -> 1 when its price was typed by hand
+    asof: ""            // exchange date of the latest live quotes
+  };
+
+  // ---- helpers -----------------------------------------------------------
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === "class") e.className = attrs[k];
+      else if (k === "text") e.textContent = attrs[k];
+      else if (k === "html") e.innerHTML = attrs[k];
+      else if (k.slice(0, 2) === "on") e.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+    }
+    if (kids) kids.forEach(function (c) { if (c != null) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function fmt(n, dp) { if (!isFinite(n)) n = 0; dp = dp == null ? 0 : dp; return n.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+  function nt(n, dp) { return "NT$" + fmt(n, dp); }
+  function signed(n, dp) { return (n > 0 ? "+" : n < 0 ? "−" : "") + "NT$" + fmt(Math.abs(n), dp == null ? 0 : dp); }
+  function pctStr(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n), 2) + "%"; }
+  function cls(n) { return n > 0 ? "up" : n < 0 ? "down" : "flat"; }
+  function pname(k) { return state.settings[k] || ({ p1: "Person 1", p2: "Person 2", joint: "Joint" })[k] || k; }
+  function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function num(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; }
+  function matchFilter(person) { return state.filter === "all" || person === state.filter; }
+  function curPrice(sym) { return num(state.prices[sym]); }
+  // Costs of a trade: broker commission both ways, plus tax when selling.
+  // Sell tax is 0.1% for ETFs (codes starting "00") and 0.3% for stocks.
+  var FEE_RATE = 0.001425, ETF_SELL_TAX = 0.001, STOCK_SELL_TAX = 0.003, MIN_FEE = 20, MIN_FEE_ODD_LOT = 1;
+  function isEtf(symbol) { return /^00/.test(String(symbol || "")); }
+  function estCosts(type, shares, price, symbol) {
+    var amt = num(shares) * num(price);
+    if (!(amt > 0)) return 0;
+    var share = num(state.settings.feeDiscount) / 100 || 1;
+    var fee = Math.max(Math.floor(amt * FEE_RATE * share), num(shares) < 1000 ? MIN_FEE_ODD_LOT : MIN_FEE);
+    return fee + (type === "sell" ? Math.floor(amt * (isEtf(symbol) ? ETF_SELL_TAX : STOCK_SELL_TAX)) : 0);
+  }
+  // A trade's own figure (typed from the broker app) wins over the estimate.
+  function txCosts(t) { return t.costs != null ? num(t.costs) : estCosts(t.type, t.shares, t.price, t.symbol); }
+  // ETF names from the exchange, remembered in this browser only.
+  var names = {};
+  try { names = JSON.parse(localStorage.getItem("etfNames")) || {}; } catch (e) { names = {}; }
+  function symCell(symbol) {
+    return [el("span", { class: "sym", text: symbol }), names[symbol] ? el("div", { class: "etf-name", text: names[symbol] }) : null];
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; }); }
+
+  // ---- core computation: positions + realized P/L (average cost) ---------
+  function compute() {
+    // group by person + symbol, process in date order
+    var txs = state.transactions.map(function (t, i) { return { t: t, i: i }; });
+    txs.sort(function (a, b) {
+      var da = (a.t.date || "").replace(/\//g, "-"), db = (b.t.date || "").replace(/\//g, "-");
+      if (da < db) return -1; if (da > db) return 1; return a.i - b.i;
+    });
+    var groups = {};
+    txs.forEach(function (o) {
+      var key = (o.t.person || "p1") + "|" + o.t.symbol;
+      (groups[key] = groups[key] || []).push(o.t);
+    });
+
+    var positions = [], realizedByPerson = { p1: 0, p2: 0, joint: 0 }, txRealized = {};
+    Object.keys(groups).forEach(function (key) {
+      var parts = key.split("|"), person = parts[0], symbol = parts[1];
+      var sh = 0, cost = 0;
+      groups[key].forEach(function (t) {
+        var q = num(t.shares), px = num(t.price);
+        if (t.type === "sell") {
+          var avg = sh > 0 ? cost / sh : 0;
+          var r = (px - avg) * q - txCosts(t);
+          txRealized[t.id] = r;
+          realizedByPerson[person] = (realizedByPerson[person] || 0) + r;
+          cost -= avg * q; sh -= q;
+          if (sh <= 1e-9) { sh = 0; cost = 0; }
+        } else {
+          sh += q; cost += q * px + txCosts(t);
+        }
+      });
+      if (sh > 1e-9) {
+        var price = curPrice(symbol);
+        var mkt = sh * price;
+        positions.push({ person: person, symbol: symbol, shares: sh, cost: cost, avgCost: cost / sh, price: price, mkt: mkt, unreal: mkt - cost });
+      }
+    });
+    positions.sort(function (a, b) { return b.mkt - a.mkt; });
+    return { positions: positions, realizedByPerson: realizedByPerson, txRealized: txRealized };
+  }
+
+  function totals(c, filterFn) {
+    var mkt = 0, cost = 0, realized = 0;
+    c.positions.forEach(function (p) { if (filterFn(p.person)) { mkt += p.mkt; cost += p.cost; } });
+    ["p1", "p2", "joint"].forEach(function (k) { if (filterFn(k)) realized += c.realizedByPerson[k] || 0; });
+    var unreal = mkt - cost;
+    return { mkt: mkt, cost: cost, unreal: unreal, unrealPct: cost > 0 ? unreal / cost * 100 : 0, realized: realized, total: unreal + realized };
+  }
+
+  // ---- render ------------------------------------------------------------
+  var C = null, DAYS = null;   // DAYS: date -> that day's result, once price history is loaded
+  function latestDay() { return DAYS && state.asof ? DAYS[state.asof] : null; }
+  function render() {
+    C = compute();
+    DAYS = state.ready && hist && hist.missing === 0 ? dailyResults() : null;
+    renderSubtitle();
+    renderTiles();
+    renderTabs();
+    renderPositions();
+    renderAllocation();
+    renderTransactions();
+    renderCalendar();
+    renderDaily();
+  }
+
+  function renderSubtitle() {
+    var sub = document.getElementById("subtitle");
+    if (!state.ready) { sub.textContent = "Loading…"; return; }
+    var nt_ = state.transactions.length;
+    sub.textContent = pname("p1") + " + " + pname("p2") + " · " + C.positions.length + " open positions · " + nt_ + (nt_ === 1 ? " trade" : " trades");
+  }
+
+  function renderTiles() {
+    var t = totals(C, matchFilter);
+    var tiles = document.getElementById("tiles"); tiles.innerHTML = "";
+    function tile(label, valueEl, sub, big) {
+      var v = el("div", { class: "value" + (big ? " big" : "") }); v.appendChild(valueEl);
+      return el("div", { class: "tile" }, [el("div", { class: "label", text: label }), v, sub ? el("div", { class: "sub", html: sub }) : null]);
+    }
+    var day = latestDay();
+    var daySub = day ? "<span class='" + cls(roundPl(day.pl)) + "'>" + signed(day.pl) + "</span> on " + shortDate(state.asof) + " · " : "";
+    tiles.appendChild(tile("Market value", el("span", { class: "tnum", text: nt(t.mkt) }), daySub + "cost " + nt(t.cost)));
+    tiles.appendChild(tile("Unrealized P/L", el("span", { class: "tnum " + cls(t.unreal), text: signed(t.unreal) }), "<span class='" + cls(t.unreal) + "'>" + pctStr(t.unrealPct) + "</span> open positions"));
+    tiles.appendChild(tile("Realized P/L", el("span", { class: "tnum " + cls(t.realized), text: signed(t.realized) }), "from sells, after fees & tax"));
+    tiles.appendChild(tile("Total return", el("span", { class: "tnum " + cls(t.total), text: signed(t.total) }), "unrealized + realized", true));
+  }
+
+  function renderTabs() {
+    var tabs = document.getElementById("tabs"); tabs.innerHTML = "";
+    var defs = [{ k: "all", label: "Combined" }, { k: "p1", label: pname("p1") }, { k: "p2", label: pname("p2") }, { k: "joint", label: pname("joint") }];
+    defs.forEach(function (d) {
+      var t = totals(C, function (p) { return d.k === "all" || p === d.k; });
+      // hide joint tab if nothing joint
+      if (d.k === "joint" && t.mkt === 0 && t.realized === 0) return;
+      var b = el("button", { class: "tab", role: "tab", "aria-selected": state.filter === d.k ? "true" : "false", onclick: function () { state.filter = d.k; render(); } });
+      if (d.k !== "all") { var dot = el("span", { class: "pdot" }); dot.style.background = PCOLOR[d.k]; b.appendChild(dot); }
+      b.appendChild(document.createTextNode(d.label));
+      var plspan = el("span", { class: "tnum " + cls(t.total), html: "&nbsp;· " + signed(t.total) });
+      plspan.style.opacity = ".85"; plspan.style.fontWeight = "500"; b.appendChild(plspan);
+      tabs.appendChild(b);
+    });
+  }
+
+  function personPill(k) {
+    var p = el("span", { class: "pill", text: pname(k) });
+    p.style.color = PCOLOR[k]; p.style.background = "color-mix(in srgb, " + PCOLOR[k] + " 15%, transparent)";
+    return p;
+  }
+
+  function renderPositions() {
+    var rows = C.positions.filter(function (p) { return matchFilter(p.person); });
+    document.getElementById("posCount").textContent = rows.length ? rows.length + " shown" : "";
+    var body = document.getElementById("posBody"); body.innerHTML = "";
+    if (!rows.length) {
+      body.appendChild(el("div", { class: "empty" }, [
+        el("h3", { text: "No open positions" }),
+        el("p", { text: "Add your buys and sells below — open positions show up here automatically." }),
+        el("button", { class: "btn primary", text: "+ Add transaction", onclick: openAddTx })
+      ]));
+      return;
+    }
+    var head = el("tr", {}, [["ETF", 1], ["Owner", 1], ["Shares", 1], ["Avg cost", 1], ["Price", 1], ["Day", 1], ["Mkt value", 1], ["Unrealized P/L", 1]].map(function (h) { return el("th", { text: h[0] }); }));
+    var tb = el("tbody");
+    var day = latestDay();
+    rows.forEach(function (p) {
+      var pct = p.cost > 0 ? p.unreal / p.cost * 100 : 0;
+      var dr = day ? day.rows.filter(function (r) { return r.person === p.person && r.symbol === p.symbol; })[0] : null;
+      var dayPl = dr ? roundPl(dr.pl) : 0;
+      tb.appendChild(el("tr", {}, [
+        el("td", {}, symCell(p.symbol)),
+        el("td", { style: "text-align:left" }, [personPill(p.person)]),
+        el("td", { class: "mono", text: fmt(p.shares) }),
+        el("td", { class: "mono", text: fmt(p.avgCost, 2) }),
+        el("td", { class: "mono" }, [document.createTextNode(p.price ? fmt(p.price, 2) : "—"), state.manual[p.symbol] ? el("div", { class: "sub flat", style: "font-size:.74rem", text: "manual" }) : null]),
+        dr ? el("td", { class: "mono " + cls(dayPl) }, [document.createTextNode(signed(dayPl)), dr.prev ? el("div", { class: "sub " + cls(dayPl), style: "font-size:.74rem", text: pctStr((dr.close / dr.prev - 1) * 100) }) : null]) : el("td", { class: "mono flat", text: "—" }),
+        el("td", { class: "mono", text: nt(p.mkt) }),
+        el("td", { class: "mono " + cls(p.unreal) }, [document.createTextNode(signed(p.unreal)), el("div", { class: "sub " + cls(p.unreal), style: "font-size:.74rem", text: pctStr(pct) })])
+      ]));
+    });
+    body.appendChild(el("div", { class: "tbl-scroll" }, [el("table", {}, [el("thead", {}, [head]), tb])]));
+  }
+
+  function renderAllocation() {
+    var rows = C.positions.filter(function (p) { return matchFilter(p.person); });
+    var body = document.getElementById("allocBody"); body.innerHTML = "";
+    var note = document.getElementById("allocNote");
+    var total = rows.reduce(function (s, p) { return s + p.mkt; }, 0);
+    if (!rows.length || total <= 0) { note.textContent = ""; body.appendChild(el("div", { class: "empty" }, [el("p", { text: "Allocation appears once you hold positions with a price." })])); return; }
+    note.textContent = "by market value";
+    var cx = 90, cy = 90, r = 72, rin = 46, circ = 2 * Math.PI * r, off = 0;
+    var svg = '<svg viewBox="0 0 180 180" role="img" aria-label="Allocation">';
+    rows.forEach(function (p, i) {
+      var frac = p.mkt / total, len = frac * circ, color = DONUT[i % DONUT.length];
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="' + (r - rin) + '" stroke-dasharray="' + len + ' ' + (circ - len) + '" stroke-dashoffset="' + (-off) + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle>';
+      off += len;
+    });
+    svg += '<text x="90" y="86" text-anchor="middle" font-size="11" fill="var(--muted)">Total</text>';
+    svg += '<text x="90" y="104" text-anchor="middle" font-size="15" font-weight="700" fill="var(--fg)">' + nt(total) + '</text></svg>';
+    var legend = el("div", { class: "alloc-legend" });
+    rows.forEach(function (p, i) {
+      var frac = p.mkt / total;
+      legend.appendChild(el("div", { class: "al-row" }, [
+        el("span", { class: "dot", style: "background:" + DONUT[i % DONUT.length] }),
+        el("span", { class: "nm2", html: "<b class='sym'>" + escapeHtml(p.symbol) + "</b> · " + escapeHtml(pname(p.person)) }),
+        el("span", { class: "pct", text: fmt(frac * 100, 1) + "%" })
+      ]));
+    });
+    body.appendChild(el("div", { class: "alloc" }, [el("div", { html: svg }), legend]));
+  }
+
+  function renderTransactions() {
+    var rows = state.transactions.filter(function (t) { return matchFilter(t.person); });
+    // sort newest first for display
+    rows = rows.slice().sort(function (a, b) {
+      var da = (a.date || "").replace(/\//g, "-"), db = (b.date || "").replace(/\//g, "-");
+      if (da < db) return 1; if (da > db) return -1; return 0;
+    });
+    document.getElementById("txCount").textContent = rows.length ? rows.length + " shown" : "";
+    var body = document.getElementById("txBody"); body.innerHTML = "";
+    if (!rows.length) {
+      body.appendChild(el("div", { class: "empty" }, [
+        el("h3", { text: "No transactions yet" }),
+        el("p", { text: "Log every buy and sell — like your trading notes." }),
+        el("button", { class: "btn primary", text: "+ Add your first transaction", onclick: openAddTx })
+      ]));
+      return;
+    }
+    var head = el("tr", {}, ["Type", "Date", "ETF", "Owner", "Shares", "Price", "Amount", "Fees & tax", "Realized P/L", ""].map(function (h) { return el("th", { text: h }); }));
+    var tb = el("tbody");
+    rows.forEach(function (t) {
+      var amt = num(t.shares) * num(t.price);
+      var r = C.txRealized[t.id];
+      var realCell;
+      if (t.type === "sell" && r != null) realCell = el("td", { class: "mono " + cls(r), text: signed(r) });
+      else realCell = el("td", { class: "mono flat", text: "—" });
+      tb.appendChild(el("tr", {}, [
+        el("td", { style: "text-align:left" }, [el("span", { class: "tag " + (t.type === "sell" ? "sell" : "buy"), text: t.type === "sell" ? "Sell" : "Buy" })]),
+        el("td", { class: "mono", style: "text-align:left", text: (t.date || "").replace(/-/g, "/") }),
+        el("td", { style: "text-align:left" }, [el("span", { class: "sym", text: t.symbol })]),
+        el("td", { style: "text-align:left" }, [personPill(t.person)]),
+        el("td", { class: "mono", text: fmt(num(t.shares)) }),
+        el("td", { class: "mono", text: fmt(num(t.price), 2) }),
+        el("td", { class: "mono", text: nt(amt, amt % 1 ? 2 : 0) }),
+        el("td", { class: "mono" + (t.costs != null ? "" : " flat"), title: t.costs != null ? "Entered by you" : "Estimated", text: (t.costs != null ? "" : "≈") + nt(txCosts(t)) }),
+        realCell,
+        el("td", {}, [el("div", { style: "display:inline-flex;gap:4px" }, [
+          el("button", { class: "iconbtn", text: "Edit", onclick: function () { openEditTx(t); } }),
+          el("button", { class: "iconbtn danger", text: "✕", title: "Delete", onclick: function () { confirmDeleteTx(t); } })
+        ])])
+      ]));
+    });
+    body.appendChild(el("div", { class: "tbl-scroll" }, [el("table", {}, [el("thead", {}, [head]), tb])]));
+  }
+
+  // ---- daily tracker -----------------------------------------------------
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var hist = null;        // {closes: {symbol: {date: close}}, total, missing, failed, busy}
+  var histTimer = null, histLoading = false;
+  var dailyPick = { month: null, day: null };
+
+  function loadHistory() {
+    if (histLoading) return;
+    histLoading = true;
+    if (histTimer) { clearTimeout(histTimer); histTimer = null; }
+    fetch("/api/history").then(function (r) { return r.json(); }).then(function (data) {
+      hist = data;
+      if (state.ready) render();
+      if (data.busy) histTimer = setTimeout(loadHistory, 3000);
+    }).catch(function () {
+      histTimer = setTimeout(loadHistory, 30000);
+    }).then(function () { histLoading = false; });
+  }
+
+  function closeOn(symbol, date) {
+    // The latest exchange date uses live quotes so today moves during trading.
+    if (date === state.asof && curPrice(symbol) > 0) return curPrice(symbol);
+    var c = hist.closes[symbol];
+    return c && c[date] != null ? c[date] : null;
+  }
+
+  // Walks each person's holding in each ETF one trading day at a time.
+  // A day's result = value at close − value at prior close − bought + sold.
+  function dailyResults() {
+    var groups = {};
+    state.transactions.forEach(function (t) {
+      var person = t.person || "p1";
+      if (!t.symbol || !matchFilter(person)) return;
+      var key = person + "|" + t.symbol, date = normDate(t.date);
+      var g = groups[key] = groups[key] || { person: person, symbol: t.symbol, byDate: {} };
+      (g.byDate[date] = g.byDate[date] || []).push(t);
+    });
+    var days = {};
+    Object.keys(groups).forEach(function (key) {
+      var g = groups[key], dates = {};
+      Object.keys(g.byDate).forEach(function (d) { dates[d] = 1; });
+      Object.keys(hist.closes[g.symbol] || {}).forEach(function (d) { dates[d] = 1; });
+      if (state.asof) dates[state.asof] = 1;
+      var first = Object.keys(g.byDate).sort()[0], shares = 0, prev = null;
+      Object.keys(dates).sort().forEach(function (d) {
+        if (d < first) return;
+        var txs = g.byDate[d] || [];
+        var close = closeOn(g.symbol, d);
+        if (shares <= 1e-9 && !txs.length) { if (close != null) prev = close; return; }
+        if (close == null) close = prev != null ? prev : num(txs[0].price);
+        var boughtQ = 0, boughtAmt = 0, soldQ = 0, soldAmt = 0, costs = 0;
+        txs.forEach(function (t) {
+          var q = num(t.shares), amt = q * num(t.price);
+          costs += txCosts(t);
+          if (t.type === "sell") { soldQ += q; soldAmt += amt; } else { boughtQ += q; boughtAmt += amt; }
+        });
+        var end = shares + boughtQ - soldQ;
+        var pl = end * close - shares * (prev != null ? prev : close) - boughtAmt + soldAmt - costs;
+        var day = days[d] = days[d] || { date: d, pl: 0, rows: [] };
+        day.pl += pl;
+        day.rows.push({ costs: costs, person: g.person, symbol: g.symbol, shares: end > 1e-9 ? end : shares, close: close, prev: prev, pl: pl,
+          boughtQ: boughtQ, boughtAvg: boughtQ ? boughtAmt / boughtQ : 0, soldQ: soldQ, soldAvg: soldQ ? soldAmt / soldQ : 0 });
+        shares = end <= 1e-9 ? 0 : end;
+        prev = close;
+      });
+    });
+    return days;
+  }
+
+  function dateParts(d) {
+    var p = d.split("-");
+    return { y: +p[0], m: +p[1], d: +p[2], wd: new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])).getUTCDay() };
+  }
+  function longDate(d) { var p = dateParts(d); return WEEKDAYS[p.wd] + ", " + MONTHS[p.m - 1] + " " + p.d + ", " + p.y; }
+  function shortDate(d) { var p = dateParts(d); return MONTHS[p.m - 1] + " " + p.d; }
+  function plain(n) { return (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n)); }
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function roundPl(n) { return Math.abs(n) < 0.005 ? 0 : n; }
+
+  function renderDaily() {
+    var tiles = document.getElementById("dayTiles"), body = document.getElementById("dayBody");
+    var detailPanel = document.getElementById("dayDetailPanel");
+    var prevBtn = document.getElementById("prevMonth"), nextBtn = document.getElementById("nextMonth");
+    tiles.innerHTML = ""; body.innerHTML = "";
+    function notReady(box) {
+      document.getElementById("chartPanel").style.display = "none";
+      detailPanel.style.display = "none"; prevBtn.disabled = nextBtn.disabled = true;
+      document.getElementById("monthTitle").textContent = "Daily gain / loss";
+      document.getElementById("monthCount").textContent = "";
+      body.appendChild(box);
+    }
+    if (!state.ready || !hist) { notReady(el("div", { class: "empty", text: "Loading…" })); return; }
+    if (hist.missing > 0) {
+      var have = hist.total - hist.missing - hist.failed;
+      var bar = el("div"); bar.style.width = (hist.total ? have / hist.total * 100 : 0) + "%";
+      notReady(el("div", { class: "empty", role: "status" }, [
+        el("h3", { text: "Getting past daily prices from the exchange" }),
+        el("p", { style: "margin:0", text: have + " of " + hist.total + " months so far. This slow download only happens once." }),
+        el("div", { class: "progress" }, [bar])
+      ]));
+      return;
+    }
+    var days = DAYS || dailyResults();
+    var dates = Object.keys(days).sort();
+    if (!dates.length) {
+      notReady(el("div", { class: "empty" }, [el("h3", { text: "Nothing to show yet" }), el("p", { style: "margin:0", text: "Daily results appear once there's a trade for this person." })]));
+      return;
+    }
+    detailPanel.style.display = "";
+
+    var months = {};
+    dates.forEach(function (d) { var m = d.slice(0, 7); (months[m] = months[m] || { pl: 0, days: [] }); months[m].pl += days[d].pl; months[m].days.push(d); });
+    var monthKeys = Object.keys(months).sort();
+    if (!months[dailyPick.month]) dailyPick.month = monthKeys[monthKeys.length - 1];
+    var cur = months[dailyPick.month];
+    if (cur.days.indexOf(dailyPick.day) < 0) dailyPick.day = cur.days[cur.days.length - 1];
+
+    // Tiles for the selected month.
+    var ym = dailyPick.month.split("-"), monthName = MONTHS[+ym[1] - 1] + " " + ym[0];
+    var best = null, worst = null, ups = 0, downs = 0;
+    cur.days.forEach(function (d) {
+      var v = roundPl(days[d].pl);
+      if (v > 0) ups++; else if (v < 0) downs++;
+      if (!best || v > days[best].pl) best = d;
+      if (!worst || v < days[worst].pl) worst = d;
+    });
+    function tile(label, text, c, sub) {
+      return el("div", { class: "tile" }, [el("div", { class: "label", text: label }), el("div", { class: "value" }, [el("span", { class: "tnum " + c, text: text })]), el("div", { class: "sub", text: sub })]);
+    }
+    tiles.appendChild(tile(monthName, signed(cur.pl), cls(roundPl(cur.pl)), cur.days.length + " trading days"));
+    tiles.appendChild(tile("Best day", signed(days[best].pl), cls(roundPl(days[best].pl)), shortDate(best)));
+    tiles.appendChild(tile("Worst day", signed(days[worst].pl), cls(roundPl(days[worst].pl)), shortDate(worst)));
+    tiles.appendChild(tile("Days up / down", ups + " / " + downs, "", "gains / losses"));
+
+    document.getElementById("monthTitle").textContent = monthName;
+    document.getElementById("monthCount").textContent = "tap a day for details";
+    var mi = monthKeys.indexOf(dailyPick.month);
+    prevBtn.disabled = mi <= 0; nextBtn.disabled = mi >= monthKeys.length - 1;
+    prevBtn.onclick = function () { pickMonth(monthKeys[mi - 1]); };
+    nextBtn.onclick = function () { pickMonth(monthKeys[mi + 1]); };
+
+    if (hist.failed > 0) body.appendChild(el("div", { class: "cal-note", style: "border-top:none;border-bottom:1px solid var(--line)", text: "The exchange didn't send " + hist.failed + " month(s) of prices, so some days may be off. The app will try again in a few minutes." }));
+
+    // One button per month with its total.
+    var lastYear = monthKeys[monthKeys.length - 1].slice(0, 4);
+    var strip = el("div", { class: "month-strip" });
+    monthKeys.forEach(function (m) {
+      var p = m.split("-"), v = roundPl(months[m].pl);
+      strip.appendChild(el("button", { class: "month-chip", "aria-pressed": m === dailyPick.month ? "true" : "false", onclick: function () { pickMonth(m); } }, [
+        el("span", { text: MONTHS[+p[1] - 1] + (p[0] !== lastYear ? " " + p[0] : "") }),
+        el("span", { class: "tnum " + cls(v), text: plain(v) })
+      ]));
+    });
+    body.appendChild(strip);
+
+    // Monday–Friday calendar for the month.
+    var grid = el("div", { class: "day-grid" });
+    ["Mon", "Tue", "Wed", "Thu", "Fri"].forEach(function (w) { grid.appendChild(el("div", { class: "day-head", text: w })); });
+    var y = +ym[0], m0 = +ym[1] - 1, count = new Date(Date.UTC(y, m0 + 1, 0)).getUTCDate(), started = false;
+    for (var n = 1; n <= count; n++) {
+      var wd = new Date(Date.UTC(y, m0, n)).getUTCDay();
+      if (wd === 0 || wd === 6) continue;
+      if (!started) { for (var b = 1; b < wd; b++) grid.appendChild(el("div")); started = true; }
+      var date = y + "-" + pad(m0 + 1) + "-" + pad(n), day = days[date];
+      if (!day) { grid.appendChild(el("div", { class: "day closed" }, [el("span", { class: "d-num", text: String(n) })])); continue; }
+      (function (date, v, n) {
+        var c = cls(v), selected = date === dailyPick.day;
+        grid.appendChild(el("button", { class: "day " + c, "data-date": date, "aria-pressed": selected ? "true" : "false",
+          "aria-label": longDate(date) + ", " + signed(v), onclick: function () { pickDay(date); } }, [
+          el("span", { class: "d-num", text: String(n) }),
+          el("span", { class: "d-amt " + c, text: plain(v) })
+        ]));
+      })(date, roundPl(day.pl), n);
+    }
+    body.appendChild(grid);
+    renderDayDetail(days[dailyPick.day]);
+    renderChart();
+  }
+
+  function pickMonth(m) { dailyPick.month = m; dailyPick.day = null; renderDaily(); }
+  function pickDay(d) {
+    dailyPick.day = d; renderDaily();
+    var again = document.querySelector('button.day[data-date="' + d + '"]');
+    if (again) again.focus({ preventScroll: true });
+    if (window.innerWidth <= 720) document.getElementById("dayDetailPanel").scrollIntoView({ block: "nearest" });
+  }
+
+  function renderDayDetail(day) {
+    var rows = day.rows.slice().sort(function (a, b) { return b.pl - a.pl; });
+    var ups = rows.filter(function (r) { return roundPl(r.pl) > 0; }).length, downs = rows.filter(function (r) { return roundPl(r.pl) < 0; }).length;
+    var live = day.date === state.asof && !rows.some(function (r) { var c = hist.closes[r.symbol]; return c && c[day.date] != null; });
+    var total = roundPl(day.pl);
+    document.getElementById("dayTitle").textContent = longDate(day.date);
+    document.getElementById("dayCount").textContent = ups + " up · " + downs + " down" + (live ? " · so far today" : "");
+    var totalEl = document.getElementById("dayTotal");
+    totalEl.textContent = signed(day.pl); totalEl.className = "day-total tnum " + cls(total);
+
+    var head = el("tr", {}, [el("th", { text: "ETF" }), el("th", { class: "col-shares", text: "Shares" }), el("th", { text: "Close" }), el("th", { text: "Change" }), el("th", { text: "Gain / loss" })]);
+    var tb = el("tbody");
+    rows.forEach(function (r) {
+      var change = r.prev ? r.close - r.prev : null, v = roundPl(r.pl);
+      var notes = [];
+      if (r.boughtQ) notes.push("Bought " + fmt(r.boughtQ) + " @ " + fmt(r.boughtAvg, 2));
+      if (r.soldQ) notes.push("Sold " + fmt(r.soldQ) + " @ " + fmt(r.soldAvg, 2));
+      if (r.costs) notes.push("fees NT$" + fmt(r.costs));
+      tb.appendChild(el("tr", {}, [
+        el("td", {}, [
+          el("span", { class: "sym", text: r.symbol }),
+          state.filter === "all" ? personPill(r.person) : null,
+          names[r.symbol] ? el("div", { class: "etf-name", text: names[r.symbol] }) : null,
+          notes.length ? el("div", { class: "trade", text: notes.join(" · ") }) : null
+        ]),
+        el("td", { class: "mono col-shares", text: fmt(r.shares) }),
+        el("td", { class: "mono", text: fmt(r.close, 2) }),
+        el("td", { class: "mono " + (change == null ? "flat" : cls(change)), text: change == null ? "—" : pctStr(change / r.prev * 100) }),
+        el("td", { class: "mono " + cls(v), text: signed(v) })
+      ]));
+    });
+    var detail = document.getElementById("dayDetail"); detail.innerHTML = "";
+    detail.appendChild(el("div", { class: "tbl-scroll" }, [el("table", { class: "day-tbl" }, [el("thead", {}, [head]), tb])]));
+    var exes = state.expected.filter(function (x) {
+      return normDate(x.exDate) === day.date && matchFilter(x.person) && rows.some(function (r) { return r.symbol === x.symbol && r.person === x.person; });
+    });
+    var seen = {}, lines = [];
+    exes.forEach(function (x) { if (!seen[x.symbol]) { seen[x.symbol] = 1; lines.push(x.symbol + " (NT$" + fmt(num(x.perUnit), 2) + " per share)"); } });
+    if (lines.length) detail.appendChild(el("div", { class: "cal-note", text: "Ex-dividend today: " + lines.join(", ") + ". Part of the price drop is the payout, which is on the Dividend calendar page." }));
+  }
+
+  // ---- total return chart ------------------------------------------------
+  function niceStep(range, parts) {
+    var raw = range / parts, p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+  }
+  function renderChart() {
+    var panel = document.getElementById("chartPanel"), box = document.getElementById("chartBody");
+    var dates = DAYS ? Object.keys(DAYS).sort() : [];
+    if (dates.length < 2) { panel.style.display = "none"; return; }
+    panel.style.display = "";
+    var W = box.clientWidth, H = 210;
+    if (!W) return;   // the page is hidden; drawn again when it is shown
+    var left = 10, right = 12, top = 14, bottom = 24, n = dates.length;
+    var cum = [], run = 0;
+    dates.forEach(function (d) { run += DAYS[d].pl; cum.push(run); });
+    var lo = Math.min.apply(null, cum.concat(0)), hi = Math.max.apply(null, cum.concat(0));
+    var step = niceStep((hi - lo) || 1, 4);
+    lo = Math.floor(lo / step) * step; hi = Math.ceil(hi / step) * step;
+    var dx = (W - left - right) / (n - 1);
+    function x(i) { return left + i * dx; }
+    function y(v) { return top + (hi - v) * (H - top - bottom) / (hi - lo); }
+
+    var svg = '<svg width="' + W + '" height="' + H + '" role="img" aria-label="Total return from ' + shortDate(dates[0]) + ' to ' + shortDate(dates[n - 1]) + ', now ' + signed(run) + '">';
+    // Shade the month picked in the calendar below.
+    var first = -1, last = -1;
+    dates.forEach(function (d, i) { if (d.slice(0, 7) === dailyPick.month) { if (first < 0) first = i; last = i; } });
+    if (first >= 0) {
+      var bx = Math.max(left, x(first) - dx / 2), bw = Math.min(W - right, x(last) + dx / 2) - bx;
+      svg += '<rect x="' + bx.toFixed(1) + '" y="' + top + '" width="' + bw.toFixed(1) + '" height="' + (H - top - bottom) + '" rx="4" fill="var(--surface-2)"/>';
+    }
+    for (var v = lo; v <= hi + step / 2; v += step) {
+      var gy = y(v).toFixed(1), zero = Math.abs(v) < step / 2;
+      svg += '<line x1="' + left + '" x2="' + (W - right) + '" y1="' + gy + '" y2="' + gy + '" stroke="' + (zero ? "var(--muted)" : "var(--line)") + '" stroke-width="1"/>';
+      svg += '<text x="' + (left + 2) + '" y="' + (y(v) - 4).toFixed(1) + '">' + plain(zero ? 0 : v) + '</text>';
+    }
+    var lastLabel = -100;
+    dates.forEach(function (d, i) {
+      if (i && d.slice(0, 7) === dates[i - 1].slice(0, 7)) return;
+      if (x(i) - lastLabel < 34 || x(i) > W - right - 20) return;
+      lastLabel = x(i);
+      svg += '<text x="' + x(i).toFixed(1) + '" y="' + (H - 7) + '">' + MONTHS[+d.slice(5, 7) - 1] + '</text>';
+    });
+    var line = cum.map(function (c, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(c).toFixed(1); }).join(" ");
+    svg += '<path d="' + line + ' L' + x(n - 1).toFixed(1) + ' ' + y(0).toFixed(1) + ' L' + x(0).toFixed(1) + ' ' + y(0).toFixed(1) + ' Z" fill="var(--accent)" opacity=".1"/>';
+    svg += '<path d="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    svg += '<line class="cross" y1="' + top + '" y2="' + (H - bottom) + '" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>';
+    svg += '<circle class="dot" r="4.5" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" cx="' + x(n - 1).toFixed(1) + '" cy="' + y(run).toFixed(1) + '"/></svg>';
+    box.innerHTML = svg;
+
+    var tip = el("div", { class: "chart-tip" }); box.appendChild(tip);
+    var node = box.querySelector("svg"), cross = node.querySelector(".cross"), dot = node.querySelector(".dot");
+    function at(e) { return Math.max(0, Math.min(n - 1, Math.round((e.clientX - node.getBoundingClientRect().left - left) / dx))); }
+    node.addEventListener("pointermove", function (e) {
+      var i = at(e), d = dates[i], dayPl = roundPl(DAYS[d].pl);
+      cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", x(i)); dot.setAttribute("cy", y(cum[i]));
+      tip.innerHTML = "";
+      tip.appendChild(el("div", { class: "tip-date", text: longDate(d) }));
+      tip.appendChild(el("div", {}, ["Total ", el("b", { class: "tnum " + cls(roundPl(cum[i])), text: signed(cum[i]) })]));
+      tip.appendChild(el("div", {}, ["That day ", el("b", { class: "tnum " + cls(dayPl), text: signed(dayPl) })]));
+      tip.style.display = "block";
+      var tw = tip.offsetWidth;
+      tip.style.left = Math.max(4, Math.min(W - tw - 4, x(i) > W / 2 ? x(i) - tw - 12 : x(i) + 12)) + "px";
+    });
+    node.addEventListener("pointerleave", function () {
+      cross.setAttribute("visibility", "hidden"); tip.style.display = "none";
+      dot.setAttribute("cx", x(n - 1)); dot.setAttribute("cy", y(run));
+    });
+    node.addEventListener("click", function (e) { var d = dates[at(e)]; dailyPick.month = d.slice(0, 7); pickDay(d); });
+
+    var totalEl = document.getElementById("chartTotal");
+    totalEl.textContent = signed(run); totalEl.className = "day-total tnum " + cls(roundPl(run));
+  }
+
+  // ---- dividend calendar -------------------------------------------------
+  function normDate(s) { return (s || "").replace(/\//g, "-"); }
+  function localToday() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function sharesBefore(person, symbol, exDate) {
+    var sh = state.transactions.reduce(function (s, t) {
+      if (t.symbol !== symbol || (t.person || "p1") !== person || normDate(t.date) >= exDate) return s;
+      return s + (t.type === "sell" ? -num(t.shares) : num(t.shares));
+    }, 0);
+    return Math.max(0, sh);
+  }
+  function expDetail(r) {
+    var shares = sharesBefore(r.person, r.symbol, normDate(r.exDate));
+    return { shares: shares, amount: shares * num(r.perUnit), received: r.actual != null };
+  }
+  function expTag(r, d, today) {
+    if (d.received) return r.status === "estimate" ? ["estimate", "Received · est."] : ["received", "Received"];
+    if (normDate(r.payDate) < today) return ["overdue", "Enter actual"];
+    return r.status === "announced" ? ["announced", "Announced"] : ["estimate", "Estimate"];
+  }
+  function renderCalendar() {
+    var today = localToday();
+    var rows = state.expected.filter(function (r) { return matchFilter(r.person); })
+      .slice().sort(function (a, b) { return normDate(a.payDate).localeCompare(normDate(b.payDate)) || a.symbol.localeCompare(b.symbol); });
+    function isPaid(r) { return r.actual != null || normDate(r.payDate) < today; }
+    var pending = rows.filter(function (r) { return r.actual == null; });
+    var pendingTotal = pending.reduce(function (s, r) { return s + expDetail(r).amount; }, 0);
+    var received = rows.reduce(function (s, r) { return r.actual != null ? s + num(r.actual) : s; }, 0);
+    var thisYear = today.slice(0, 4);
+    var yearTotal = pending.reduce(function (s, r) { return normDate(r.payDate).slice(0, 4) === thisYear ? s + expDetail(r).amount : s; }, 0);
+    var upcoming = pending.filter(function (r) { return normDate(r.payDate) >= today; });
+    var nextDate = upcoming.length ? normDate(upcoming[0].payDate) : "";
+    var nextRows = upcoming.filter(function (r) { return normDate(r.payDate) === nextDate; });
+    var nextAmt = nextRows.reduce(function (s, r) { return s + expDetail(r).amount; }, 0);
+    var nextSyms = nextRows.map(function (r) { return r.symbol; }).filter(function (s, i, a) { return a.indexOf(s) === i; }).join(", ");
+
+    function calTile(label, value, sub) {
+      return el("div", { class: "tile" }, [el("div", { class: "label", text: label }), el("div", { class: "value" }, [el("span", { class: "tnum", text: value })]), el("div", { class: "sub", text: sub })]);
+    }
+    var tiles = document.getElementById("calTiles"); tiles.innerHTML = "";
+    tiles.appendChild(calTile("Next payment", nextDate ? nextDate.slice(5).replace("-", "/") : "—", nextDate ? "≈" + nt(nextAmt) + " · " + nextSyms : "nothing scheduled"));
+    tiles.appendChild(calTile("Still to pay in " + thisYear, "≈" + nt(yearTotal), "by payment date"));
+    tiles.appendChild(calTile("All expected", "≈" + nt(pendingTotal), pending.length + (pending.length === 1 ? " payment" : " payments") + " listed"));
+    var unconfirmed = rows.filter(function (r) { return r.actual != null && r.status === "estimate"; }).length;
+    tiles.appendChild(calTile("Received", nt(received), unconfirmed ? unconfirmed + " still to confirm" : "actual amounts entered"));
+
+    var coming = rows.filter(function (r) { return !isPaid(r); });
+    var paid = rows.filter(isPaid).reverse();
+    document.getElementById("calCount").textContent = coming.length ? coming.length + (coming.length === 1 ? " payment" : " payments") : "";
+    document.getElementById("paidCount").textContent = paid.length ? paid.length + (paid.length === 1 ? " payment" : " payments") : "";
+    var body = document.getElementById("calBody"); body.innerHTML = "";
+    if (coming.length) body.appendChild(calTable(coming, today));
+    else body.appendChild(el("div", { class: "empty" }, [
+      el("h3", { text: "No expected payments" }),
+      el("p", { text: "Add a payment date and approximate amount, then correct it later." }),
+      el("button", { class: "btn primary", text: "+ Add expected", onclick: function () { expForm(null); } })
+    ]));
+    var paidBody = document.getElementById("paidBody"); paidBody.innerHTML = "";
+    if (paid.length) paidBody.appendChild(calTable(paid, today));
+    else paidBody.appendChild(el("div", { class: "empty" }, [el("p", { text: "Payments move here once their date has passed or you enter the actual amount." })]));
+  }
+  function calTable(rows, today) {
+    var head = el("tr", {}, ["Pay date", "ETF", "Owner", "Approx.", "Actual", "Status", ""].map(function (h, i) { return el("th", { text: h, style: i < 3 ? "text-align:left" : null }); }));
+    var tb = el("tbody");
+    rows.forEach(function (r) {
+      var d = expDetail(r), tag = expTag(r, d, today);
+      tb.appendChild(el("tr", {}, [
+        el("td", { class: "mono", style: "text-align:left" }, [document.createTextNode(normDate(r.payDate).replace(/-/g, "/")), el("div", { class: "sub", style: "font-size:.74rem", text: "ex " + normDate(r.exDate).replace(/-/g, "/") })]),
+        el("td", { style: "text-align:left" }, [el("span", { class: "sym", text: r.symbol })]),
+        el("td", { style: "text-align:left" }, [personPill(r.person)]),
+        el("td", { class: "mono" }, [document.createTextNode((r.status === "announced" ? "" : "≈") + nt(d.amount)), el("div", { class: "sub", style: "font-size:.74rem", text: fmt(d.shares) + " × " + fmt(num(r.perUnit), 2) })]),
+        d.received ? el("td", { class: "mono up", text: (r.status === "estimate" ? "≈" : "+") + nt(num(r.actual)) }) : el("td", { class: "mono flat", text: "—" }),
+        el("td", {}, [el("span", { class: "tag " + tag[0], text: tag[1] })]),
+        el("td", {}, [el("div", { style: "display:inline-flex;gap:4px" }, [
+          el("button", { class: "iconbtn", text: "Edit", onclick: function () { expForm(r); } }),
+          el("button", { class: "iconbtn danger", text: "✕", title: "Delete", onclick: function () { confirmDeleteExp(r); } })
+        ])])
+      ]));
+    });
+    return el("div", { class: "tbl-scroll" }, [el("table", {}, [el("thead", {}, [head]), tb])]);
+  }
+  function statusSegment(cur) {
+    var val = cur || "estimate";
+    var seg = el("div", { class: "seg" });
+    [["estimate", "Estimate"], ["announced", "Announced"]].forEach(function (p) {
+      var b = el("button", { type: "button", "aria-pressed": val === p[0] ? "true" : "false", text: p[1] });
+      b.onclick = function () { val = p[0]; seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); }); b.setAttribute("aria-pressed", "true"); };
+      seg.appendChild(b);
+    });
+    seg.getValue = function () { return val; };
+    return seg;
+  }
+  function expForm(r) {
+    var symIn = el("input", { type: "text", value: r ? r.symbol : "", placeholder: "00400A", autocomplete: "off" });
+    var exIn = el("input", { type: "date", value: r ? normDate(r.exDate) : "" });
+    var payIn = el("input", { type: "date", value: r ? normDate(r.payDate) : "" });
+    var perIn = el("input", { type: "number", step: "any", min: "0", value: r ? r.perUnit : "", placeholder: "0.12", inputmode: "decimal" });
+    var actIn = el("input", { type: "number", step: "any", min: "0", value: r && r.actual != null ? r.actual : "", placeholder: "Leave blank until paid", inputmode: "decimal" });
+    var statusSeg = statusSegment(r ? r.status : "estimate");
+    var seg = personSegment(r ? r.person : state.filter !== "all" ? state.filter : null);
+    var form = el("form", { class: "mform", onsubmit: function (e) {
+      e.preventDefault();
+      var sym = symIn.value.trim().toUpperCase(); if (!sym) { symIn.focus(); return; }
+      if (!exIn.value) { exIn.focus(); return; }
+      if (!payIn.value) { payIn.focus(); return; }
+      var actual = actIn.value === "" ? null : num(actIn.value);
+      // Typing a new actual amount confirms the payment.
+      var status = actual != null && (!r || actual !== r.actual) ? "announced" : statusSeg.getValue();
+      saveExp(r ? r.id : uid(), { symbol: sym, person: seg.getValue(), exDate: exIn.value, payDate: payIn.value, perUnit: num(perIn.value), status: status, actual: actual });
+      closeModal();
+    }}, [
+      field("ETF", symIn),
+      el("div", { class: "field" }, [el("label", { text: "Owner" }), seg]),
+      el("div", { class: "frow" }, [field("Ex-dividend date", exIn), field("Payment date", payIn)]),
+      el("div", { class: "frow" }, [field("Per share", perIn, "NT$ expected"), field("Actual received", actIn, "NT$ total, after fees")]),
+      el("div", { class: "field" }, [el("label", { text: "Status" }), statusSeg]),
+      el("div", { class: "mactions" }, [
+        el("button", { type: "button", class: "btn", text: "Cancel", onclick: closeModal }),
+        el("button", { type: "submit", class: "btn primary", text: r ? "Save changes" : "Add payment" })
+      ])
+    ]);
+    modal(r ? "Edit expected payment" : "Add expected payment", null, form);
+  }
+  function confirmDeleteExp(r) {
+    confirmBox("Delete expected payment?", r.symbol + " · " + pname(r.person) + " · " + normDate(r.payDate), function () { removeExp(r.id); closeModal(); });
+  }
+  function saveExp(id, rec) {
+    var body = { id: id, symbol: rec.symbol, person: rec.person || "p1", exDate: rec.exDate, payDate: rec.payDate, perUnit: num(rec.perUnit), status: rec.status === "announced" ? "announced" : "estimate", actual: rec.actual };
+    var i = idx(state.expected, id); if (i >= 0) state.expected[i] = body; else state.expected.push(body);
+    render(); persist();
+  }
+  function removeExp(id) {
+    var i = idx(state.expected, id); if (i < 0) return;
+    state.expected.splice(i, 1); render(); persist();
+  }
+
+  // ---- modal plumbing ----------------------------------------------------
+  function modal(titleText, descText, formEl) {
+    closeModal();
+    var box = el("div", { class: "modal", role: "dialog", "aria-modal": "true" }, [
+      el("h2", { text: titleText }), descText ? el("p", { class: "mp", text: descText }) : null, formEl
+    ]);
+    var bg = el("div", { class: "modal-bg", onclick: function (e) { if (e.target === bg) closeModal(); } }, [box]);
+    document.getElementById("modal-slot").appendChild(bg);
+    document.addEventListener("keydown", escClose);
+    var first = box.querySelector("input, select, button"); if (first) setTimeout(function () { first.focus(); }, 30);
+  }
+  function closeModal() { var s = document.getElementById("modal-slot"); s.innerHTML = ""; document.removeEventListener("keydown", escClose); }
+  function escClose(e) { if (e.key === "Escape") closeModal(); }
+  function field(labelText, inputEl, hint) {
+    return el("div", { class: "field" }, [el("label", { text: labelText }), inputEl, hint ? el("div", { class: "hint", text: hint }) : null]);
+  }
+  function personSegment(cur) {
+    var val = cur || "p1";
+    var seg = el("div", { class: "seg" });
+    ["p1", "p2", "joint"].forEach(function (k) {
+      var b = el("button", { type: "button", "aria-pressed": val === k ? "true" : "false", text: pname(k) });
+      b.onclick = function () { val = k; seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); }); b.setAttribute("aria-pressed", "true"); };
+      seg.appendChild(b);
+    });
+    seg.getValue = function () { return val; };
+    return seg;
+  }
+  function typeSegment(cur) {
+    var val = cur || "buy";
+    var seg = el("div", { class: "seg" });
+    [["buy", "Buy"], ["sell", "Sell"]].forEach(function (p) {
+      var b = el("button", { type: "button", "aria-pressed": val === p[0] ? "true" : "false", text: p[1] });
+      b.onclick = function () { val = p[0]; seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", "false"); }); b.setAttribute("aria-pressed", "true"); };
+      seg.appendChild(b);
+    });
+    seg.getValue = function () { return val; };
+    return seg;
+  }
+
+  // ---- transaction add/edit ---------------------------------------------
+  function openAddTx() { txForm(null); }
+  function openEditTx(t) { txForm(t); }
+  function txForm(t) {
+    var isEdit = !!t;
+    var today = localToday();
+    var typeSeg = typeSegment(t ? t.type : "buy");
+    var dateIn = el("input", { type: "date", value: t ? (t.date || today).replace(/\//g, "-") : today });
+    var symIn = el("input", { type: "text", value: t ? t.symbol : "", placeholder: "00990A", autocomplete: "off" });
+    var sharesIn = el("input", { type: "number", step: "any", min: "0", value: t ? t.shares : "", placeholder: "1000", inputmode: "decimal" });
+    var priceIn = el("input", { type: "number", step: "any", min: "0", value: t ? t.price : "", placeholder: "12.10", inputmode: "decimal" });
+    var seg = personSegment(t ? t.person : state.filter !== "all" ? state.filter : null);
+    var costsIn = el("input", { type: "number", step: "any", min: "0", value: t && t.costs != null ? t.costs : "", inputmode: "decimal" });
+    var amtNote = el("div", { class: "hint", text: "" });
+    var warnNote = el("div", { class: "hint danger", role: "alert" }), warnedFor = "";
+    function upd() { var a = num(sharesIn.value) * num(priceIn.value); amtNote.textContent = a ? "Amount: " + nt(a, a % 1 ? 2 : 0) : ""; costsIn.placeholder = a ? "≈ " + fmt(estCosts(typeSeg.getValue(), sharesIn.value, priceIn.value, symIn.value.trim())) : ""; }
+    typeSeg.addEventListener("click", upd);
+    sharesIn.addEventListener("input", upd); symIn.addEventListener("input", upd); priceIn.addEventListener("input", upd); upd();
+
+    var form = el("form", { class: "mform", onsubmit: function (e) {
+      e.preventDefault();
+      var sym = symIn.value.trim().toUpperCase(); if (!sym) { symIn.focus(); return; }
+      if (!(num(sharesIn.value) > 0)) { sharesIn.focus(); return; }
+      if (!(num(priceIn.value) > 0)) { priceIn.focus(); return; }
+      if (typeSeg.getValue() === "sell") {
+        var who = seg.getValue(), q = num(sharesIn.value);
+        var held = state.transactions.reduce(function (s, x) {
+          if ((t && x.id === t.id) || x.symbol !== sym || (x.person || "p1") !== who || normDate(x.date) > dateIn.value) return s;
+          return s + (x.type === "sell" ? -num(x.shares) : num(x.shares));
+        }, 0);
+        var key = [sym, who, q, dateIn.value].join("|");
+        if (q > held + 1e-9 && warnedFor !== key) {
+          // Warn once; a second press records it anyway.
+          warnedFor = key;
+          warnNote.textContent = pname(who) + " holds only " + fmt(Math.max(0, held)) + " shares of " + sym + " on that date. Press the button again to record it anyway.";
+          return;
+        }
+      }
+      saveTx(t ? t.id : uid(), { type: typeSeg.getValue(), date: dateIn.value, symbol: sym, shares: num(sharesIn.value), price: num(priceIn.value), person: seg.getValue(), costs: costsIn.value === "" ? null : num(costsIn.value) });
+      closeModal();
+    }}, [
+      el("div", { class: "field" }, [el("label", { text: "Type" }), typeSeg]),
+      el("div", { class: "frow" }, [field("Date", dateIn), field("Code", symIn, "ETF or stock, e.g. 00990A or 2330")]),
+      el("div", { class: "field" }, [el("label", { text: "Owner" }), seg]),
+      el("div", { class: "frow" }, [field("Shares", sharesIn), field("Price", priceIn, "NT$ / share")]),
+      field("Fees & tax", costsIn, "NT$ total, as shown in the Fubon app. Leave empty to use the estimate."),
+      amtNote, warnNote,
+      el("div", { class: "mactions" }, [
+        el("button", { type: "button", class: "btn", text: "Cancel", onclick: closeModal }),
+        el("button", { type: "submit", class: "btn primary", text: isEdit ? "Save changes" : "Add transaction" })
+      ])
+    ]);
+    modal(isEdit ? "Edit transaction" : "Add transaction", null, form);
+  }
+
+  // ---- edit prices manually ----------------------------------------------
+  function openEditPrices() {
+    var syms = {}; state.transactions.forEach(function (t) { if (t.symbol) syms[t.symbol] = 1; });
+    var list = Object.keys(syms);
+    if (!list.length) { openAddTx(); return; }
+    var inputs = {};
+    var wrap = el("div", { class: "mform", style: "gap:12px;padding-top:8px" });
+    list.forEach(function (s) {
+      var inp = el("input", { type: "number", step: "any", min: "0", value: state.prices[s] || "", inputmode: "decimal" });
+      inputs[s] = inp;
+      wrap.appendChild(el("div", { class: "field" }, [el("label", { html: "<b class='sym'>" + escapeHtml(s) + "</b>" + (state.manual[s] ? " · manual" : "") }), inp]));
+    });
+    wrap.appendChild(el("div", { class: "mactions" }, [
+      el("button", { type: "button", class: "btn", text: "Cancel", onclick: closeModal }),
+      el("button", { type: "button", class: "btn primary", text: "Save prices", onclick: function () {
+        var cleared = false;
+        list.forEach(function (s) {
+          var raw = inputs[s].value.trim();
+          if (raw === "") { if (state.manual[s]) { delete state.manual[s]; cleared = true; } return; }
+          var v = num(raw);
+          if (v > 0 && v !== num(state.prices[s])) { state.prices[s] = v; state.manual[s] = 1; }
+        });
+        render(); persist(); closeModal();
+        if (cleared) refreshPrices(false);
+      }})
+    ]));
+    modal("Edit current prices", "A price you type here stays until you empty its field. Empty fields follow the live price (NT$).", wrap);
+  }
+
+  // ---- settings ----------------------------------------------------------
+  function openSettings() {
+    var p1In = el("input", { type: "text", value: pname("p1"), maxlength: "20" });
+    var p2In = el("input", { type: "text", value: pname("p2"), maxlength: "20" });
+    var jIn = el("input", { type: "text", value: pname("joint"), maxlength: "20" });
+    var feeIn = el("input", { type: "number", step: "any", min: "1", max: "100", value: num(state.settings.feeDiscount) || 100, inputmode: "decimal" });
+    var form = el("form", { class: "mform", onsubmit: function (e) {
+      e.preventDefault();
+      state.settings = { p1: p1In.value.trim() || "Person 1", p2: p2In.value.trim() || "Person 2", joint: jIn.value.trim() || "Joint", feeDiscount: Math.min(100, Math.max(1, num(feeIn.value) || 100)) };
+      render(); persist(); closeModal();
+    }}, [
+      field("Person 1", p1In), field("Person 2", p2In), field("Shared label", jIn, "for holdings you both own together"),
+      field("Commission you pay, % of the standard rate", feeIn, "Standard is 0.1425% per trade. Type 100 for no discount, 60 for 6折, 28 for 2.8折. Sell tax is added automatically: 0.1% for ETFs, 0.3% for stocks."),
+      el("div", { class: "mactions" }, [
+        el("button", { type: "button", class: "btn", text: "Cancel", onclick: closeModal }),
+        el("button", { type: "submit", class: "btn primary", text: "Save" })
+      ])
+    ]);
+    modal("Settings", null, form);
+  }
+
+  // ---- delete confirm ----------------------------------------------------
+  function confirmDeleteTx(t) {
+    confirmBox((t.type === "sell" ? "Delete sell" : "Delete buy") + " of " + t.symbol + "?", (t.date || "") + " · " + fmt(num(t.shares)) + " @ " + fmt(num(t.price), 2), function () { removeTx(t.id); closeModal(); });
+  }
+  function confirmBox(titleText, descText, onYes) {
+    var form = el("div", { class: "mform" }, [el("div", { class: "mactions" }, [
+      el("button", { type: "button", class: "btn", text: "Cancel", onclick: closeModal }),
+      el("button", { type: "button", class: "btn primary", text: "Delete", onclick: onYes })
+    ])]);
+    var b = form.querySelector(".btn.primary"); b.style.background = "var(--gain)"; b.style.borderColor = "var(--gain)";
+    modal(titleText, descText, form);
+  }
+
+  // ---- local-server I/O --------------------------------------------------
+  var saveTimer = null, saving = false, pendingSave = false;
+  function idx(arr, id) { for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return i; return -1; }
+
+  function saveTx(id, rec) {
+    var body = { id: id, type: rec.type === "sell" ? "sell" : "buy", date: rec.date || "", symbol: rec.symbol, shares: num(rec.shares), price: num(rec.price), person: rec.person || "p1", costs: rec.costs == null ? null : num(rec.costs) };
+    var i = idx(state.transactions, id); var isNew = i < 0;
+    if (i >= 0) state.transactions[i] = body; else state.transactions.push(body);
+    render(); persist();
+    if (isNew && body.symbol && !state.prices[body.symbol]) refreshPrices(false);
+    setTimeout(loadHistory, 800);   // a new ETF or earlier date may need more past prices
+  }
+  function removeTx(id) { var i = idx(state.transactions, id); if (i >= 0) state.transactions.splice(i, 1); render(); persist(); }
+
+  // auto = a background price update, as opposed to something the person typed.
+  var userDirty = false;
+  function persist(auto) { if (!auto) userDirty = true; if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 250); }
+  function applyData(data) {
+    data = data || {};
+    document.getElementById("demoBanner").hidden = !data.demo;
+    state.rev = data.rev || 0;
+    state.transactions = data.transactions || [];
+    state.dividends = data.dividends || [];
+    state.expected = data.expected || [];
+    state.prices = data.prices || {};
+    state.manual = {};
+    (data.manual || []).forEach(function (s) { state.manual[s] = 1; });
+    if (data.settings) state.settings = { p1: data.settings.p1 || "Person 1", p2: data.settings.p2 || "Person 2", joint: data.settings.joint || "Joint", feeDiscount: num(data.settings.feeDiscount) || 100 };
+  }
+  function doSave() {
+    if (saving) { pendingSave = true; return; }
+    saving = true;
+    var hadEdit = userDirty; userDirty = false;
+    fetch("/api/data", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rev: state.rev, transactions: state.transactions, dividends: state.dividends, expected: state.expected, prices: state.prices, manual: Object.keys(state.manual), settings: state.settings }) })
+      .then(function (r) {
+        if (r.status === 409) {
+          // Another tab saved first. Take its data instead of overwriting it.
+          return r.json().then(function (j) {
+            var lost = hadEdit || userDirty;
+            userDirty = false; pendingSave = false;
+            applyData(j.data); render();
+            if (lost) setBanner("warn", "Another tab changed the portfolio first, so your last change here wasn't saved. This tab now shows the latest data. Please make the change again.");
+          });
+        }
+        if (!r.ok) throw new Error("http " + r.status);
+        return r.json().then(function (j) { state.rev = j.rev; });
+      })
+      .catch(function () { setBanner("warn", "Couldn't save to disk — is the tracker server still running?"); })
+      .then(function () { saving = false; if (pendingSave) { pendingSave = false; doSave(); } });
+  }
+
+  // ---- price refresh -----------------------------------------------------
+  function setFoot(txt) { var f = document.getElementById("foot"); if (f) f.textContent = txt; }
+  var refreshing = false, refreshAgain = false;
+  function setSync(st, txt) {
+    var s = document.getElementById("sync");
+    s.setAttribute("data-state", st); document.getElementById("syncText").textContent = txt;
+  }
+  function setRefreshing(on) {
+    refreshing = on;
+    document.body.classList.toggle("refreshing", on);
+    document.getElementById("refreshBtn").setAttribute("aria-busy", on ? "true" : "false");
+  }
+  function endRefresh() {
+    setRefreshing(false);
+    if (refreshAgain) { refreshAgain = false; refreshPrices(false); }
+  }
+  function flashTiles() {
+    document.querySelectorAll(".tile").forEach(function (t) { t.classList.add("flash"); });
+  }
+  function refreshPrices(manual) {
+    if (refreshing) { if (!manual) refreshAgain = true; return; }
+    var syms = {}; state.transactions.forEach(function (t) { if (t.symbol) syms[t.symbol] = 1; });
+    var list = Object.keys(syms);
+    if (!list.length) { if (manual) setFoot("Add a transaction first — then prices update automatically."); return; }
+    setRefreshing(true); setSync("busy", "Updating prices…");
+    // Hold the animation briefly so a fast response is still visible.
+    var minShow = new Promise(function (res) { setTimeout(res, 800); });
+    var quotes_ = fetch("/api/prices?symbols=" + encodeURIComponent(list.join(",")))
+      .then(function (r) { return r.json(); });
+    Promise.all([quotes_, minShow])
+      .then(function (res) {
+        var data = res[0];
+        var quotes = (data && data.quotes) || {}; var changed = 0, hit = 0;
+        if (data && data.asof) state.asof = data.asof;
+        list.forEach(function (s) { if (quotes[s] && quotes[s].name) names[s] = quotes[s].name; });
+        try { localStorage.setItem("etfNames", JSON.stringify(names)); } catch (e) {}
+        list.forEach(function (s) {
+          var q = quotes[s];
+          if (q && isFinite(q.price) && q.price > 0) { hit++; if (!state.manual[s] && num(state.prices[s]) !== q.price) { state.prices[s] = q.price; changed++; } }
+        });
+        render(); if (changed) { persist(true); flashTiles(); }
+        var hhmm = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        if (hit) {
+          setSync("ok", "Updated " + hhmm);
+          setFoot("Prices auto-update every 5 min · last refreshed " + hhmm + (data.asof ? " · exchange date " + data.asof : "") + " · NT$");
+        } else {
+          setSync("warn", "No quotes");
+          setFoot("Couldn't get live quotes (market closed or codes not found). Use “Edit prices” to set them by hand. · NT$");
+        }
+      })
+      .catch(function () {
+        setSync("warn", "Update failed");
+        setFoot("Price service unavailable — set prices by hand with “Edit prices.” · NT$");
+      })
+      .then(endRefresh);
+  }
+
+  // ---- boot --------------------------------------------------------------
+  function setBanner(kind, text) {
+    var slot = document.getElementById("banner-slot"); slot.innerHTML = "";
+    if (!text) return;
+    slot.appendChild(el("div", { class: "banner " + (kind || "info") }, [el("div", { text: text })]));
+  }
+  function applyPage() {
+    var page = location.hash === "#dividends" ? "dividends" : location.hash === "#daily" ? "daily" : "portfolio";
+    document.body.setAttribute("data-page", page);
+    document.querySelectorAll(".pages a").forEach(function (a) {
+      if (a.getAttribute("data-page") === page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    window.scrollTo(0, 0);
+    if (page === "daily" && state.ready) { loadHistory(); renderChart(); }
+  }
+  function wireButtons() {
+    document.getElementById("addTxBtn").onclick = openAddTx;
+    document.getElementById("addExpBtn").onclick = function () { expForm(null); };
+    window.addEventListener("hashchange", applyPage); applyPage();
+    var resizeTimer = null;
+    window.addEventListener("resize", function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderChart, 150); });
+    document.getElementById("editPxBtn").onclick = openEditPrices;
+    document.getElementById("refreshBtn").onclick = function () { refreshPrices(true); };
+    document.getElementById("settingsBtn").onclick = openSettings;
+    document.getElementById("updateBtn").onclick = installUpdate;
+  }
+  // New versions from GitHub: the server checks, this only shows the result.
+  function checkUpdate() {
+    fetch("/api/update").then(function (r) { return r.json(); }).then(function (u) {
+      var box = document.getElementById("updateBanner");
+      if (!u.available) { box.hidden = true; return; }
+      document.getElementById("updateText").textContent =
+        "Version " + u.latest + " is available (you have " + u.current + "). Your trades are kept.";
+      var notes = document.getElementById("updateNotes");
+      notes.hidden = !u.page; if (u.page) notes.href = u.page;
+      box.hidden = false;
+    }).catch(function () {});
+  }
+  function installUpdate() {
+    var btn = document.getElementById("updateBtn"), text = document.getElementById("updateText");
+    btn.disabled = true; text.textContent = "Updating…";
+    fetch("/api/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then(function (r) { return r.json(); }).then(function (res) {
+        if (!res.ok) throw new Error(res.error || "update failed");
+        text.textContent = "Installed version " + res.version + ". Restarting…";
+        var tries = 0;
+        (function waitForRestart() {
+          setTimeout(function () {
+            fetch("/api/update").then(function (r) { return r.json(); }).then(function (u) {
+              if (u.current === res.version) location.reload(); else if (++tries < 30) waitForRestart();
+            }).catch(function () { if (++tries < 30) waitForRestart(); });
+          }, 1000);
+        })();
+      }).catch(function (e) {
+        btn.disabled = false;
+        text.textContent = "The update didn't install (" + e.message + "). Nothing was changed; try again later.";
+      });
+  }
+  function start() {
+    wireButtons(); render();
+    fetch("/api/data").then(function (r) { return r.json(); }).then(function (data) {
+      applyData(data);
+      state.ready = true; render();
+      refreshPrices(false);
+      loadHistory();
+      setInterval(function () { refreshPrices(false); loadHistory(); }, 5 * 60 * 1000);
+      checkUpdate(); setInterval(checkUpdate, 6 * 60 * 60 * 1000);
+    }).catch(function () {
+      state.ready = true; render();
+      setBanner("warn", "Couldn't reach the tracker server. Start it with: python3 taiwan_etf_tracker.py");
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+</script>
+</body>
+</html>
