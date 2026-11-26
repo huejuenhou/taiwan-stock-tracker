@@ -3,6 +3,15 @@
 Every issue we find and how it was fixed, newest first. Changes wait under
 **Unreleased** until they ship together in the next version.
 
+## Unreleased
+
+### Added
+- **Demo button** in the top bar. It shows made-up sample trades (Alex and
+  Sam) in the same window so anyone can look around and try things. Nothing
+  done there is saved, and your own portfolio isn't touched. **Back to my
+  portfolio** in the banner returns to your data. Before this, the demo
+  needed the separate **Try Demo** file.
+
 ## 1.0.3 (2026-11-26)
 
 ### Added

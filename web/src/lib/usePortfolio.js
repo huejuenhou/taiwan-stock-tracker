@@ -4,8 +4,13 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {num} from './format.js';
 
+// ?view=demo shows the made-up sample trades from the Demo button. Nothing in
+// that view is saved; leaving it (or reloading) starts over.
+export const SAMPLE_VIEW = new URLSearchParams(location.search).get('view') === 'demo';
+const VIEW_QUERY = SAMPLE_VIEW ? '?view=demo' : '';
+
 const EMPTY = {
-  ready: false, demo: false, rev: 0,
+  ready: false, demo: false, sample: false, rev: 0,
   transactions: [], dividends: [], expected: [], prices: {}, manual: {},
   settings: {p1: 'Me', p2: '', joint: 'Joint', feeDiscount: 100},
   asof: '',
@@ -17,7 +22,7 @@ function fromServer(d, asof) {
   (d.manual || []).forEach(s => { manual[s] = 1; });
   const st = d.settings || {};
   return {
-    ready: true, demo: !!d.demo, rev: d.rev || 0,
+    ready: true, demo: !!d.demo, sample: d.view === 'demo', rev: d.rev || 0,
     transactions: d.transactions || [], dividends: d.dividends || [], expected: d.expected || [],
     prices: d.prices || {}, manual,
     settings: {
@@ -95,6 +100,7 @@ export function usePortfolio() {
     dataRef.current = next;
     setData(next);
     const sv = save.current;
+    if (SAMPLE_VIEW) return; // sample trades are never written to disk
     if (!auto) sv.userDirty = true;
     clearTimeout(sv.timer);
     sv.timer = setTimeout(doSave, 250);
@@ -107,7 +113,7 @@ export function usePortfolio() {
     if (h.loading) return;
     h.loading = true;
     clearTimeout(h.timer);
-    fetch('/api/history')
+    fetch('/api/history' + VIEW_QUERY)
       .then(r => r.json())
       .then(d => {
         setHist(d);
@@ -203,14 +209,14 @@ export function usePortfolio() {
   // ---- start -------------------------------------------------------------------
   useEffect(() => {
     let timer = null;
-    fetch('/api/data')
+    fetch('/api/data' + VIEW_QUERY)
       .then(r => r.json())
       .then(d => {
         dataRef.current = fromServer(d);
         setData(dataRef.current);
         refreshPrices(false);
         loadHistory();
-        checkUpdate();
+        if (!SAMPLE_VIEW) checkUpdate();
         timer = setInterval(() => { refreshPrices(false); loadHistory(); }, 5 * 60 * 1000);
       })
       .catch(() => {

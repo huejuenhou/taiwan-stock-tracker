@@ -11,7 +11,7 @@ import {Badge} from '@astryxdesign/core/Badge';
 import {VisuallyHidden} from '@astryxdesign/core/VisuallyHidden';
 import {Cog6ToothIcon} from '@heroicons/react/24/outline';
 import logo from '../../logo.svg';
-import {usePortfolio} from './lib/usePortfolio.js';
+import {usePortfolio, SAMPLE_VIEW} from './lib/usePortfolio.js';
 import {compute, totals, dailyResults, isSolo, pname, PEOPLE} from './lib/calc.js';
 import {signed, toneColor, slashDate, fmt, num} from './lib/format.js';
 import {PortfolioTiles, PortfolioPage} from './pages/Portfolio.jsx';
@@ -86,6 +86,8 @@ export default function App() {
   const latestDay = days && data.asof ? days[data.asof] : null;
 
   const close = () => setDialog(null);
+  const openSample = () => { location.href = '/?view=demo' + location.hash; };
+  const leaveSample = () => { location.href = '/' + location.hash; };
   const openTx = tx => setDialog({kind: 'tx', tx});
   const openExp = exp => setDialog({kind: 'exp', exp});
   const shared = {data, filter, solo, names};
@@ -105,6 +107,9 @@ export default function App() {
               <HStack gap={2} vAlign="center">
                 <Badge variant="red" label="漲 Gain" />
                 <Badge variant="green" label="跌 Loss" />
+                {!data.demo && (SAMPLE_VIEW
+                  ? <Button label="Exit demo" size="sm" onClick={leaveSample} />
+                  : <Button label="Demo" size="sm" tooltip="Look around with made-up trades. Your own data isn't touched." onClick={openSample} />)}
                 <IconButton label="Settings" variant="ghost" icon={<Icon icon={Cog6ToothIcon} />} onClick={() => setDialog({kind: 'settings'})} />
               </HStack>
             }
@@ -115,8 +120,15 @@ export default function App() {
         <LayoutContent role="main" padding={6}>
           <VisuallyHidden as="h1">Taiwan Stock Tracker</VisuallyHidden>
           <VStack gap={6} maxWidth={1240}>
-            {data.demo && (
+            {data.demo && !SAMPLE_VIEW && (
               <Banner status="info" title="Sample data" description="These trades are made up so you can look around. Changes are thrown away the next time you open Try Demo." />
+            )}
+            {SAMPLE_VIEW && (
+              <Banner
+                status="info" title="Demo view: made-up trades"
+                description="Look around and try things out. Nothing here is saved, and your own portfolio isn't touched."
+                endContent={<Button label="Back to my portfolio" size="sm" variant="primary" onClick={leaveSample} />}
+              />
             )}
             <UpdateBanner update={pf.update} onInstall={pf.installUpdate} />
             {pf.warning && <Banner status="warning" title={pf.warning} isDismissable onDismiss={() => pf.setWarning('')} />}

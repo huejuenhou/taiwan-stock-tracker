@@ -350,10 +350,10 @@ def _fetch_history(work):
         history_running = False
 
 
-def history_status():
+def history_status(transactions=None):
     """Closes we already have, and start a background fetch for whatever is due."""
     global history_running
-    needed = needed_months(load_data()["transactions"])
+    needed = needed_months(load_data()["transactions"] if transactions is None else transactions)
     with history_lock:
         h = _load_history()
         now = time.time()
@@ -651,14 +651,17 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 self._send(500, "index.html not found next to the server.", "text/plain; charset=utf-8")
             return
+        sample = urllib.parse.parse_qs(parsed.query).get("view") == ["demo"]
         if path == "/api/data":
-            self._send(200, json.dumps(dict(load_data(), demo=DEMO), ensure_ascii=False))
+            d = dict(_demo_template(), demo=True, view="demo") if sample else dict(load_data(), demo=DEMO)
+            self._send(200, json.dumps(d, ensure_ascii=False))
             return
         if path == "/api/update":
             self._send(200, json.dumps(check_for_update()))
             return
         if path == "/api/history":
-            self._send(200, json.dumps(history_status()))
+            txs = _demo_template()["transactions"] if sample else None
+            self._send(200, json.dumps(history_status(txs)))
             return
         if path == "/api/prices":
             qs = urllib.parse.parse_qs(parsed.query)
@@ -715,11 +718,17 @@ class Handler(BaseHTTPRequestHandler):
         self._send(404, "not found", "text/plain; charset=utf-8")
 
 
-def _start_demo():
-    """Copy the sample trades into the demo file, replacing last time's changes."""
+def _demo_template():
+    """The made-up sample trades (read-only; the Demo button shows these)."""
     with open(DEMO_TEMPLATE, "r", encoding="utf-8") as f:
         d = json.load(f)
     d["rev"] = 0
+    return d
+
+
+def _start_demo():
+    """Copy the sample trades into the demo file, replacing last time's changes."""
+    d = _demo_template()
     with data_lock:
         tmp = DATA_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
