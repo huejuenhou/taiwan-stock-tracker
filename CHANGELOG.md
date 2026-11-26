@@ -3,7 +3,7 @@
 Every issue we find and how it was fixed, newest first. Changes wait under
 **Unreleased** until they ship together in the next version.
 
-## Unreleased
+## 1.0.4 (2026-11-26)
 
 ### Added
 - **Demo button** in the top bar. It shows made-up sample trades (Alex and

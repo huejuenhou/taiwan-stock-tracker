@@ -55,8 +55,10 @@ Nothing else needs installing.
 - Prefer the browser? Double-click **Start Tracker** in the folder. That
   opens the tracker in your browser, with a Terminal window doing the work
   behind it; keep that window open while you use it.
-- To look around with made-up trades first, double-click **Try Demo** in
-  the **Taiwan Stock Tracker** folder.
+- To look around with made-up trades first, click **Demo** in the top bar.
+  Nothing done there is saved; **Back to my portfolio** returns to your own
+  trades. (Double-clicking **Try Demo** in the **Taiwan Stock Tracker**
+  folder works too.)
 - With the install line, your trades are saved in the Applications folder
   inside your home folder, in **Taiwan Stock Tracker** (in Finder, press
   **⌘ Shift H** to go home). With the zip, they're in the folder you unzipped.
